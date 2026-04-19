@@ -1,0 +1,13 @@
+{
+  "extends": "@ecommerce/config-tsconfig/nestjs.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "@ecommerce/shared-types": ["../../packages/shared-types/src"]
+    }
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,21 @@
+// Prisma schema — Sprint 0: minimal schema, validates DB connectivity.
+// Full models land in Sprint 1.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Placeholder model — confirms migrations pipeline works end-to-end.
+/// Removed or replaced in Sprint 1 when real domain models arrive.
+model HealthCheck {
+  id        String   @id @default(cuid())
+  service   String
+  checkedAt DateTime @default(now())
+
+  @@index([checkedAt])
+}

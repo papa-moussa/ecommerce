@@ -1,0 +1,5 @@
+{
+  "extends": "@ecommerce/config-tsconfig/base.json",
+  "include": [],
+  "exclude": ["node_modules", "dist", ".next", "build", "coverage"]
+}

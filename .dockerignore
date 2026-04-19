@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/.env
+**/.env.local
+**/.env.*.local
+.git
+.github
+.husky
+*.md
+!README.md
+Dockerfile*
+docker-compose*

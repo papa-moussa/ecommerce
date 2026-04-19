@@ -1,0 +1,22 @@
+{
+  "name": "@ecommerce/config-eslint",
+  "version": "0.0.0",
+  "private": true,
+  "main": "base.js",
+  "files": ["base.js", "nest.js", "next.js"],
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "7.18.0",
+    "@typescript-eslint/parser": "7.18.0",
+    "eslint-config-prettier": "9.1.0",
+    "eslint-plugin-import": "2.30.0",
+    "eslint-plugin-unused-imports": "3.2.0"
+  },
+  "devDependencies": {
+    "eslint": "8.57.1",
+    "typescript": "5.5.4"
+  },
+  "peerDependencies": {
+    "eslint": "^8.57.0",
+    "typescript": "^5.5.0"
+  }
+}
