@@ -24,6 +24,7 @@ export interface User {
   phone: string | null;
   role: Role;
   emailVerified: boolean;
+  totpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }

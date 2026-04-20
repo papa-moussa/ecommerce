@@ -20,6 +20,28 @@ interface AuditLog {
   user: { id: string; email: string };
 }
 
+function exportCsv(logs: AuditLog[]) {
+  const headers = ['Date', 'Admin', 'Action', 'Ressource', 'ID', 'IP'];
+  const rows = logs.map((l) => [
+    new Date(l.createdAt).toLocaleString('fr-FR'),
+    l.user.email,
+    l.action,
+    l.resource,
+    l.resourceId ?? '',
+    l.ip ?? '',
+  ]);
+  const csv = [headers, ...rows]
+    .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminAuditLogPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [total, setTotal] = useState(0);
@@ -47,7 +69,9 @@ export default function AdminAuditLogPage() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const columns: ColumnDef<AuditLog>[] = [
     {
@@ -106,7 +130,20 @@ export default function AdminAuditLogPage() {
 
   return (
     <div>
-      <PageHeader title={`Audit log (${total})`} description="Toutes les actions admin mutantes" />
+      <PageHeader
+        title={`Audit log (${total})`}
+        description="Toutes les actions admin mutantes"
+        action={
+          logs.length > 0 ? (
+            <button
+              onClick={() => exportCsv(logs)}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Exporter CSV
+            </button>
+          ) : undefined
+        }
+      />
 
       {error && <p className="mb-4 text-red-600 text-sm">{error}</p>}
 

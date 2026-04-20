@@ -1,6 +1,7 @@
 'use client';
 
 import { type ColumnDef } from '@tanstack/react-table';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { adminApi } from '@/lib/admin-api';
@@ -62,7 +63,9 @@ export default function AdminOrdersPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+  }, [statusFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStatusUpdate = async () => {
     if (!actionOrder || !newStatus) return;
@@ -136,6 +139,12 @@ export default function AdminOrdersPage() {
         const nextStatuses = VALID_TRANSITIONS[o.status] ?? [];
         return (
           <div className="flex gap-2">
+            <Link
+              href={`/admin/commandes/${o.id}`}
+              className="text-xs text-gray-500 hover:underline"
+            >
+              Détail
+            </Link>
             {nextStatuses.length > 0 && (
               <button
                 onClick={() => {

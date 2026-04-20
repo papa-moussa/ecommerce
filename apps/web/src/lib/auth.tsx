@@ -9,6 +9,7 @@ export interface LoginResult {
   requires2FA?: true;
   tempToken?: string;
   role?: string;
+  totpEnabled?: boolean;
 }
 
 interface AuthCtx {
@@ -49,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const ok = result as { user: User; accessToken: string };
     setAccessToken(ok.accessToken);
     setUser(ok.user);
-    return { role: ok.user.role };
+    return { role: ok.user.role, totpEnabled: ok.user.totpEnabled };
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {

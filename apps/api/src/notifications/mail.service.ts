@@ -1,4 +1,3 @@
-
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, type Transporter } from 'nodemailer';
@@ -74,6 +73,48 @@ export class MailService implements OnModuleInit {
           <p style="color:#999;font-size:12px;margin-top:24px">
             Ce lien expire dans <strong>24 heures</strong>.<br>
             Si vous n'avez pas créé de compte, ignorez cet e-mail.
+          </p>
+        </div>
+      `,
+    });
+  }
+
+  async sendOrderStatusEmail(
+    to: string,
+    firstName: string,
+    orderId: string,
+    status: string,
+    trackingNumber?: string | null,
+  ): Promise<void> {
+    const shortId = orderId.slice(-8).toUpperCase();
+    const subjects: Record<string, string> = {
+      PROCESSING: `Votre commande #${shortId} est en préparation`,
+      SHIPPED: `Votre commande #${shortId} est expédiée !`,
+      DELIVERED: `Votre commande #${shortId} a été livrée`,
+      CANCELLED: `Votre commande #${shortId} a été annulée`,
+      REFUNDED: `Remboursement de votre commande #${shortId}`,
+    };
+    const bodies: Record<string, string> = {
+      PROCESSING: `Bonne nouvelle, ${firstName}&nbsp;! Notre équipe prépare votre commande <strong>#${shortId}</strong>. Vous recevrez un e-mail dès l'expédition.`,
+      SHIPPED: `Votre commande <strong>#${shortId}</strong> a été confiée au transporteur.${trackingNumber ? `<br><br>Numéro de suivi&nbsp;: <strong>${trackingNumber}</strong>` : ''}`,
+      DELIVERED: `Votre commande <strong>#${shortId}</strong> a été livrée. Nous espérons que vous êtes pleinement satisfait(e).`,
+      CANCELLED: `Votre commande <strong>#${shortId}</strong> a été annulée. Si vous avez des questions, contactez notre service client.`,
+      REFUNDED: `Le remboursement de votre commande <strong>#${shortId}</strong> a été initié. Il apparaîtra sur votre relevé bancaire sous 5 à 10 jours ouvrés.`,
+    };
+    const subject = subjects[status];
+    const body = bodies[status];
+    if (!subject || !body) return;
+
+    await this.sendMail({
+      to,
+      subject,
+      text: subject,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 0">
+          <h2 style="color:#1a1a1a;font-size:20px;margin-bottom:16px">${subject}</h2>
+          <p style="color:#555;line-height:1.6;margin-bottom:24px">Bonjour ${firstName},<br><br>${body}</p>
+          <p style="color:#999;font-size:12px;margin-top:32px">
+            Maison Parfum · Une sélection rigoureuse de parfums de niche
           </p>
         </div>
       `,

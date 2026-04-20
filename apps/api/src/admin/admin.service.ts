@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { OrderStatus } from '@prisma/client';
 
 import { type AppConfig } from '../config/configuration';
+import { MailService } from '../notifications/mail.service';
 import { StripeService } from '../payments/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -33,6 +34,7 @@ export class AdminService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<AppConfig, true>,
     private readonly stripeService: StripeService,
+    private readonly mail: MailService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -275,13 +277,24 @@ export class AdminService {
     if (dto.status === OrderStatus.SHIPPED && !dto.trackingNumber) {
       throw new BadRequestException('Un numéro de suivi est requis pour passer en SHIPPED.');
     }
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: {
         status: dto.status,
         ...(dto.trackingNumber && { trackingNumber: dto.trackingNumber }),
       },
     });
+
+    // Fire-and-forget email notification to the customer
+    void this.mail.sendOrderStatusEmail(
+      order.user.email,
+      order.user.firstName,
+      id,
+      dto.status,
+      dto.trackingNumber ?? order.trackingNumber,
+    );
+
+    return updated;
   }
 
   async refundOrder(id: string, dto: RefundOrderDto) {

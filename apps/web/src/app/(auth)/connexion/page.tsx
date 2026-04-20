@@ -29,6 +29,10 @@ export default function ConnexionPage(): JSX.Element {
         );
         return;
       }
+      if (result.role === 'ADMIN' && !result.totpEnabled) {
+        router.push('/admin/setup-2fa');
+        return;
+      }
       router.push(result.role === 'ADMIN' ? '/admin' : redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion.');
