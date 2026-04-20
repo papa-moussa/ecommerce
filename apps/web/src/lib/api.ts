@@ -128,5 +128,22 @@ export const clientApi = {
     me: () => clientFetch<User>('/auth/me'),
     logout: () => clientFetch<void>('/auth/logout', { method: 'POST' }),
     refresh: tryRefresh,
+    verifyEmail: (token: string) =>
+      clientFetch<{ message: string }>('/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      }),
+    resendVerification: () =>
+      clientFetch<{ message: string }>('/auth/resend-verification', { method: 'POST' }),
+    forgotPassword: (email: string) =>
+      clientFetch<{ message: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+    resetPassword: (token: string, password: string) =>
+      clientFetch<{ message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, password }),
+      }),
   },
 };

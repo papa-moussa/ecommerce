@@ -78,7 +78,13 @@ export default function ConnexionPage(): JSX.Element {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-brand-ink/50">
+        <p className="mt-4 text-center text-sm text-brand-ink/50">
+          <Link href="/mot-de-passe-oublie" className="hover:text-brand-ink">
+            Mot de passe oublié ?
+          </Link>
+        </p>
+
+        <p className="mt-2 text-center text-sm text-brand-ink/50">
           Pas encore de compte ?{' '}
           <Link href="/inscription" className="text-brand-gold hover:underline">
             S&apos;inscrire

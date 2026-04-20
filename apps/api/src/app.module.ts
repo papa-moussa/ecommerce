@@ -11,6 +11,7 @@ import { buildLoggerOptions } from './common/logger/logger.config';
 import { type AppConfig, configuration } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
 import { StockModule } from './stock/stock.module';
@@ -50,6 +51,7 @@ import { UsersModule } from './users/users.module';
     }),
     PrismaModule,
     HealthModule,
+    NotificationsModule,
     UsersModule,
     AuthModule,
     CategoriesModule,

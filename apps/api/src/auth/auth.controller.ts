@@ -17,8 +17,11 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 
 import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 const REFRESH_COOKIE = 'refresh_token';
 const COOKIE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -70,6 +73,46 @@ export class AuthController {
     const { passwordHash: _ph, ...publicUser } = user;
     return publicUser;
   }
+
+  // ---------------------------------------------------------------------------
+  // Email verification
+  // ---------------------------------------------------------------------------
+
+  @Public()
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  verifyEmail(@Body() dto: VerifyEmailDto) {
+    return this.authService.verifyEmail(dto);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  resendVerification(@CurrentUser() user: User) {
+    return this.authService.resendVerification(user.id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Password reset
+  // ---------------------------------------------------------------------------
+
+  @Public()
+  @Throttle({ default: { ttl: 3_600_000, limit: 3 } })
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
 
   private setRefreshCookie(res: Response, token: string) {
     res.cookie(REFRESH_COOKIE, token, {
