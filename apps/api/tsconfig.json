@@ -9,6 +9,6 @@
       "@ecommerce/shared-types": ["../../packages/shared-types/src"]
     }
   },
-  "include": ["src/**/*", "test/**/*", "prisma/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }
