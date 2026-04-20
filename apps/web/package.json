@@ -10,7 +10,7 @@
     "lint": "next lint --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "echo \"No tests yet\" && exit 0",
-    "clean": "rimraf .next .turbo coverage"
+    "clean": "rimraf .next .turbo coverage *.tsbuildinfo"
   },
   "dependencies": {
     "@sentry/nextjs": "8.33.1",

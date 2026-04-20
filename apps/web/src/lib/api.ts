@@ -1,0 +1,132 @@
+import type { Paginated, ProductCard, ProductDetail, User } from '@ecommerce/shared-types';
+
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+
+// ---------------------------------------------------------------------------
+// Server-side helpers (RSC — stateless, no auth)
+// ---------------------------------------------------------------------------
+
+async function serverFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', ...init?.headers },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export const serverApi = {
+  products: {
+    list: (params?: Record<string, string>) => {
+      const qs = params && Object.keys(params).length ? `?${new URLSearchParams(params)}` : '';
+      return serverFetch<Paginated<ProductCard>>(`/products${qs}`, { cache: 'no-store' });
+    },
+    bySlug: (slug: string) =>
+      serverFetch<ProductDetail>(`/products/${slug}`, { next: { revalidate: 3600 } }),
+    related: (id: string) =>
+      serverFetch<ProductCard[]>(`/products/${id}/related`, { next: { revalidate: 3600 } }),
+    featured: () => serverFetch<ProductCard[]>('/products/featured', { next: { revalidate: 900 } }),
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Client-side API (browser — access token in memory + auto-refresh)
+// ---------------------------------------------------------------------------
+
+let _accessToken: string | null = null;
+
+export function setAccessToken(token: string | null): void {
+  _accessToken = token;
+}
+
+export class AuthError extends Error {
+  constructor() {
+    super('Session expirée. Veuillez vous reconnecter.');
+    this.name = 'AuthError';
+  }
+}
+
+async function clientFetch<T>(
+  path: string,
+  init: RequestInit & { _isRetry?: boolean } = {},
+): Promise<T> {
+  const { _isRetry, ...fetchInit } = init;
+
+  const res = await fetch(`${BASE}${path}`, {
+    ...fetchInit,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(_accessToken ? { Authorization: `Bearer ${_accessToken}` } : {}),
+      ...(fetchInit.headers as Record<string, string> | undefined),
+    },
+  });
+
+  if (res.status === 401 && !_isRetry) {
+    const ok = await tryRefresh();
+    if (ok) return clientFetch<T>(path, { ...init, _isRetry: true });
+    _accessToken = null;
+    throw new AuthError();
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as { message?: string }).message ?? `HTTP ${res.status}`);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+async function tryRefresh(): Promise<boolean> {
+  try {
+    const res = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { accessToken: string };
+    _accessToken = data.accessToken;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  accessToken: string;
+}
+
+export const clientApi = {
+  auth: {
+    login: (data: LoginData) =>
+      clientFetch<AuthResponse>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    register: (data: RegisterData) =>
+      clientFetch<AuthResponse>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    me: () => clientFetch<User>('/auth/me'),
+    logout: () => clientFetch<void>('/auth/logout', { method: 'POST' }),
+    refresh: tryRefresh,
+  },
+};

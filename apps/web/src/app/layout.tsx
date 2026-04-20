@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 
+import { AuthProvider } from '@/lib/auth';
+
+import { Header } from './_components/header';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -8,7 +11,7 @@ export const metadata: Metadata = {
     template: '%s · Maison Parfum',
   },
   description: 'Une sélection rigoureuse de parfums de niche et signatures.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3002'),
 };
 
 export default function RootLayout({
@@ -16,7 +19,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>): JSX.Element {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <Header />
+          <main>{children}</main>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

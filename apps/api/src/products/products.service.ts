@@ -85,7 +85,7 @@ export class ProductsService {
     const data = hasNext ? items.slice(0, limit) : items;
     const nextCursor = hasNext ? data[data.length - 1]?.id : null;
 
-    return { items: data, nextCursor };
+    return { data, nextCursor };
   }
 
   async findBySlug(slug: string) {

@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "echo \"no lint\"",
     "build": "echo \"types-only package\"",
-    "clean": "rimraf dist .turbo"
+    "clean": "rimraf dist .turbo *.tsbuildinfo"
   },
   "devDependencies": {
     "@ecommerce/config-tsconfig": "workspace:*",
