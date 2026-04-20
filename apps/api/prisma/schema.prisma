@@ -1,5 +1,4 @@
-// Prisma schema — Sprint 0: minimal schema, validates DB connectivity.
-// Full models land in Sprint 1.
+// Prisma schema — Sprint 1: auth models (User, Address, RefreshToken).
 
 generator client {
   provider = "prisma-client-js"
@@ -10,8 +9,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Placeholder model — confirms migrations pipeline works end-to-end.
-/// Removed or replaced in Sprint 1 when real domain models arrive.
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// Auth & Users
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  firstName     String
+  lastName      String
+  phone         String?
+  role          Role      @default(CUSTOMER)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  addresses     Address[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  line1      String
+  line2      String?
+  city       String
+  postalCode String
+  country    String
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 0 health check placeholder (kept for health endpoint compatibility)
+// ---------------------------------------------------------------------------
+
 model HealthCheck {
   id        String   @id @default(cuid())
   service   String
