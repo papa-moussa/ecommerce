@@ -3,11 +3,14 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
+import { CategoriesModule } from './categories/categories.module';
 import { buildLoggerOptions } from './common/logger/logger.config';
 import { type AppConfig, configuration } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProductsModule } from './products/products.module';
+import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -42,6 +45,9 @@ import { UsersModule } from './users/users.module';
     HealthModule,
     UsersModule,
     AuthModule,
+    CategoriesModule,
+    ProductsModule,
+    StockModule,
   ],
 })
 export class AppModule {}
