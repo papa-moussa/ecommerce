@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
 import { CategoriesModule } from './categories/categories.module';
+import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { buildLoggerOptions } from './common/logger/logger.config';
 import { type AppConfig, configuration } from './config/configuration';
 import { validateEnv } from './config/env.validation';
@@ -20,6 +23,10 @@ import { UsersModule } from './users/users.module';
       cache: true,
       load: [configuration],
       validate: validateEnv,
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [{ name: 'global', ttl: 60_000, limit: 60 }],
+      // TODO: swap storage for ThrottlerStorageRedisService in production
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -49,5 +56,6 @@ import { UsersModule } from './users/users.module';
     ProductsModule,
     StockModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })
 export class AppModule {}
