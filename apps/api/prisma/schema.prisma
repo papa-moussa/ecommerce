@@ -38,6 +38,8 @@ model User {
   refreshTokens      RefreshToken[]
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
+  cart               Cart?
+  orders             Order[]
 
   @@index([email])
 }
@@ -169,6 +171,8 @@ model Product {
   variants       ProductVariant[]
   images         ProductImage[]
   stockMovements StockMovement[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
 
   @@index([categoryId])
   @@index([isFeatured, isActive])
@@ -187,6 +191,8 @@ model ProductVariant {
 
   product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   stockMovements StockMovement[]
+  cartItems      CartItem[]
+  orderItems     OrderItem[]
 
   @@unique([productId, sizeMl])
 }
@@ -220,6 +226,143 @@ model StockMovement {
   variant ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@index([productId, createdAt(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 2 — Panier, Orders, Paiements
+// ---------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+model Cart {
+  id             String     @id @default(cuid())
+  userId         String?    @unique
+  sessionId      String?    @unique
+  lastActivityAt DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@index([sessionId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  status          OrderStatus @default(PENDING)
+  subtotalCents   Int
+  discountCents   Int         @default(0)
+  shippingCents   Int         @default(0)
+  taxCents        Int         @default(0)
+  totalCents      Int
+  currency        String      @default("EUR")
+  promoCode       String?
+  shippingAddress Json
+  giftMessage     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  variantId     String?
+  productName   String
+  variantLabel  String?
+  unitPriceCents Int
+  quantity      Int
+  totalCents    Int
+  createdAt     DateTime @default(now())
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String
+  provider          PaymentProvider @default(STRIPE)
+  status            PaymentStatus   @default(PENDING)
+  amountCents       Int
+  currency          String          @default("EUR")
+  stripePaymentIntentId String?     @unique
+  stripeClientSecret    String?
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model WebhookEvent {
+  id        String             @id @default(cuid())
+  provider  PaymentProvider    @default(STRIPE)
+  eventId   String             @unique
+  type      String
+  status    WebhookEventStatus @default(RECEIVED)
+  payload   Json
+  error     String?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([eventId])
 }
 
 // ---------------------------------------------------------------------------

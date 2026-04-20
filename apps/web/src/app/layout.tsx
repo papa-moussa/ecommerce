@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { AuthProvider } from '@/lib/auth';
 
+import { CartDrawer } from './_components/cart-drawer';
 import { Header } from './_components/header';
 import './globals.css';
 
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <Header />
+          <CartDrawer />
           <main>{children}</main>
         </AuthProvider>
       </body>

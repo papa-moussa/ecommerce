@@ -7,6 +7,7 @@ import { serverApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 
 import { ProductCard } from '../../_components/product-card';
+import { AddToCartButton } from '../_components/add-to-cart-button';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -138,12 +139,14 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
             <p className="text-sm font-medium text-amber-600">Plus que quelques pièces.</p>
           )}
 
-          <button
-            disabled={product.stockStatus === 'OUT_OF_STOCK'}
-            className="w-full rounded-full bg-brand-ink py-3 font-medium text-brand-ivory transition-colors hover:bg-brand-gold disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {product.stockStatus === 'OUT_OF_STOCK' ? 'Épuisé' : 'Ajouter au panier'}
-          </button>
+          <AddToCartButton
+            productId={product.id}
+            name={product.name}
+            brand={product.brand}
+            imageUrl={mainImage?.url}
+            unitPriceCents={product.priceCents}
+            stockStatus={product.stockStatus}
+          />
 
           <div className="border-t border-brand-ink/10 pt-6">
             <p className="leading-relaxed text-brand-ink/70">{product.description}</p>

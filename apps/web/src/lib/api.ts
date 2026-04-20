@@ -113,7 +113,71 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export interface CartItemInput {
+  productId: string;
+  variantId?: string;
+  quantity: number;
+}
+
+export interface ValidatedCart {
+  items: {
+    productId: string;
+    variantId?: string | null;
+    name: string;
+    unitPriceCents: number;
+    quantity: number;
+    isValid: boolean;
+    reason?: string;
+  }[];
+  subtotalCents: number;
+  isValid: boolean;
+  invalidItems: string[];
+}
+
+export interface CreateOrderData {
+  items: CartItemInput[];
+  shippingAddress: {
+    line1: string;
+    line2?: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  giftMessage?: string;
+  promoCode?: string;
+}
+
+export interface CreateOrderResult {
+  orderId: string;
+  clientSecret: string;
+}
+
 export const clientApi = {
+  cart: {
+    sync: (items: CartItemInput[]) =>
+      clientFetch<void>('/cart/sync', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      }),
+    validate: (items: CartItemInput[]) =>
+      clientFetch<ValidatedCart>('/cart/validate', {
+        method: 'POST',
+        body: JSON.stringify({ items }),
+      }),
+  },
+  orders: {
+    create: (data: CreateOrderData) =>
+      clientFetch<CreateOrderResult>('/orders', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    list: () => clientFetch<unknown[]>('/orders'),
+    get: (orderId: string) => clientFetch<unknown>(`/orders/${orderId}`),
+  },
   auth: {
     login: (data: LoginData) =>
       clientFetch<AuthResponse>('/auth/login', {

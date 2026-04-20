@@ -5,13 +5,17 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module';
+import { CartModule } from './cart/cart.module';
 import { CategoriesModule } from './categories/categories.module';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { buildLoggerOptions } from './common/logger/logger.config';
 import { type AppConfig, configuration } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
+import { JobsModule } from './jobs/jobs.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { OrdersModule } from './orders/orders.module';
+import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
 import { StockModule } from './stock/stock.module';
@@ -43,6 +47,15 @@ import { UsersModule } from './users/users.module';
           JWT_REFRESH_SECRET: config.get('JWT_REFRESH_SECRET', { infer: true }),
           JWT_ACCESS_EXPIRES_IN: config.get('JWT_ACCESS_EXPIRES_IN', { infer: true }),
           JWT_REFRESH_EXPIRES_IN: config.get('JWT_REFRESH_EXPIRES_IN', { infer: true }),
+          STRIPE_SECRET_KEY: config.get('STRIPE_SECRET_KEY', { infer: true }),
+          STRIPE_WEBHOOK_SECRET: config.get('STRIPE_WEBHOOK_SECRET', { infer: true }),
+          SMTP_HOST: config.get('SMTP_HOST', { infer: true }),
+          SMTP_PORT: config.get('SMTP_PORT', { infer: true }),
+          SMTP_SECURE: config.get('SMTP_SECURE', { infer: true }),
+          SMTP_USER: config.get('SMTP_USER', { infer: true }),
+          SMTP_PASS: config.get('SMTP_PASS', { infer: true }),
+          SMTP_FROM: config.get('SMTP_FROM', { infer: true }),
+          APP_URL: config.get('APP_URL', { infer: true }),
           LOG_LEVEL: config.get('LOG_LEVEL', { infer: true }),
           SENTRY_DSN: config.get('SENTRY_DSN', { infer: true }),
           SENTRY_ENVIRONMENT: config.get('SENTRY_ENVIRONMENT', { infer: true }),
@@ -57,6 +70,10 @@ import { UsersModule } from './users/users.module';
     CategoriesModule,
     ProductsModule,
     StockModule,
+    CartModule,
+    OrdersModule,
+    PaymentsModule,
+    JobsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })
