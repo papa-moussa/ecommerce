@@ -71,6 +71,130 @@ model RefreshToken {
 }
 
 // ---------------------------------------------------------------------------
+// Catalogue
+// ---------------------------------------------------------------------------
+
+enum Gender {
+  HOMME
+  FEMME
+  UNISEXE
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}
+
+enum StockReason {
+  INITIAL
+  PURCHASE
+  RESERVATION
+  RELEASE
+  DECREMENT
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+}
+
+model Category {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String?
+  imageUrl    String?
+  parentId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId])
+}
+
+model Product {
+  id                String      @id @default(cuid())
+  slug              String      @unique
+  sku               String      @unique
+  brand             String
+  name              String
+  description       String
+  storyTelling      String?
+  topNotes          String[]
+  heartNotes        String[]
+  baseNotes         String[]
+  gender            Gender
+  categoryId        String
+  priceCents        Int
+  currency          String      @default("EUR")
+  stock             Int         @default(0)
+  lowStockThreshold Int         @default(5)
+  stockStatus       StockStatus @default(IN_STOCK)
+  isActive          Boolean     @default(true)
+  isFeatured        Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  category       Category         @relation(fields: [categoryId], references: [id])
+  variants       ProductVariant[]
+  images         ProductImage[]
+  stockMovements StockMovement[]
+
+  @@index([categoryId])
+  @@index([isFeatured, isActive])
+  @@index([brand])
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  sizeMl     Int
+  priceCents Int
+  stock      Int      @default(0)
+  sku        String   @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+
+  @@unique([productId, sizeMl])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  url       String
+  alt       String?
+  position  Int      @default(0)
+  isMain    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}
+
+model StockMovement {
+  id        String      @id @default(cuid())
+  productId String
+  variantId String?
+  delta     Int
+  reason    StockReason
+  orderId   String?
+  note      String?
+  createdBy String?
+  createdAt DateTime    @default(now())
+
+  product Product         @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([productId, createdAt(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
 // Sprint 0 health check placeholder (kept for health endpoint compatibility)
 // ---------------------------------------------------------------------------
 
