@@ -8,6 +8,7 @@ import { clientApi, type LoginData, type RegisterData, setAccessToken } from './
 export interface LoginResult {
   requires2FA?: true;
   tempToken?: string;
+  role?: string;
 }
 
 interface AuthCtx {
@@ -48,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const ok = result as { user: User; accessToken: string };
     setAccessToken(ok.accessToken);
     setUser(ok.user);
-    return {};
+    return { role: ok.user.role };
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {

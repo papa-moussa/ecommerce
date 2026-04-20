@@ -23,12 +23,13 @@ export default function ConnexionPage(): JSX.Element {
     try {
       const result = await login(form);
       if (result.requires2FA) {
+        const dest = result.role === 'ADMIN' ? '/admin' : redirect;
         router.push(
-          `/verify-2fa?t=${encodeURIComponent(result.tempToken!)}&redirect=${encodeURIComponent(redirect)}`,
+          `/verify-2fa?t=${encodeURIComponent(result.tempToken!)}&redirect=${encodeURIComponent(dest)}`,
         );
         return;
       }
-      router.push(redirect);
+      router.push(result.role === 'ADMIN' ? '/admin' : redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion.');
     } finally {

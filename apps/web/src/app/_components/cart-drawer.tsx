@@ -1,12 +1,16 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { useCartStore } from '@/lib/cart-store';
 import { formatPrice } from '@/lib/utils';
 
 export function CartDrawer() {
+  const pathname = usePathname();
   const { items, isOpen, closeCart, removeItem, updateQuantity, subtotalCents } = useCartStore();
+
+  if (pathname.startsWith('/admin')) return null;
 
   return (
     <>

@@ -26,6 +26,17 @@ interface StockForm {
   note: string;
 }
 
+interface ProductForm {
+  name: string;
+  brand: string;
+  sku: string;
+  priceCents: string;
+  stock: string;
+  description: string;
+  isActive: boolean;
+  isFeatured: boolean;
+}
+
 const STOCK_COLORS: Record<string, string> = {
   IN_STOCK: 'text-green-700',
   LOW_STOCK: 'text-amber-600',
@@ -48,6 +59,19 @@ export default function AdminProductsPage() {
     reason: 'ADJUSTMENT',
     note: '',
   });
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editTarget, setEditTarget] = useState<Product | null>(null);
+  const emptyForm: ProductForm = {
+    name: '',
+    brand: '',
+    sku: '',
+    priceCents: '',
+    stock: '',
+    description: '',
+    isActive: true,
+    isFeatured: false,
+  };
+  const [productForm, setProductForm] = useState<ProductForm>(emptyForm);
 
   const load = () => {
     setLoading(true);
@@ -70,6 +94,39 @@ export default function AdminProductsPage() {
     try {
       await adminApi.products.delete(id);
       setSuccess('Produit désactivé.');
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const handleCreate = async () => {
+    try {
+      const payload = {
+        ...productForm,
+        priceCents: Math.round(parseFloat(productForm.priceCents) * 100),
+        stock: parseInt(productForm.stock, 10) || 0,
+      };
+      await adminApi.products.create(payload);
+      setSuccess('Produit créé.');
+      setShowCreateForm(false);
+      setProductForm(emptyForm);
+      load();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const handleEdit = async () => {
+    if (!editTarget) return;
+    try {
+      const payload = {
+        ...productForm,
+        priceCents: Math.round(parseFloat(productForm.priceCents) * 100),
+      };
+      await adminApi.products.update(editTarget.id, payload);
+      setSuccess('Produit mis à jour.');
+      setEditTarget(null);
       load();
     } catch (e) {
       setError((e as Error).message);
@@ -129,6 +186,24 @@ export default function AdminProductsPage() {
         <div className="flex gap-3">
           <button
             onClick={() => {
+              setEditTarget(row.original);
+              setProductForm({
+                name: row.original.name,
+                brand: row.original.brand,
+                sku: row.original.sku,
+                priceCents: (row.original.priceCents / 100).toFixed(2),
+                stock: String(row.original.stock),
+                description: '',
+                isActive: row.original.isActive,
+                isFeatured: row.original.isFeatured,
+              });
+            }}
+            className="text-xs text-indigo-600 hover:underline"
+          >
+            Éditer
+          </button>
+          <button
+            onClick={() => {
               setStockTarget(row.original);
               setStockForm({ delta: 0, reason: 'ADJUSTMENT', note: '' });
             }}
@@ -151,7 +226,20 @@ export default function AdminProductsPage() {
 
   return (
     <div>
-      <PageHeader title={`Produits (${total})`} />
+      <PageHeader
+        title={`Produits (${total})`}
+        action={
+          <button
+            onClick={() => {
+              setShowCreateForm(true);
+              setProductForm(emptyForm);
+            }}
+            className="px-4 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+          >
+            + Nouveau produit
+          </button>
+        }
+      />
 
       {(error || success) && (
         <div
@@ -174,6 +262,88 @@ export default function AdminProductsPage() {
         <p className="text-gray-400">Chargement…</p>
       ) : (
         <DataTable columns={columns} data={products} />
+      )}
+
+      {/* Create / Edit product modal */}
+      {(showCreateForm || editTarget) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-[480px] max-h-[90vh] overflow-y-auto space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold">
+                {editTarget ? 'Modifier le produit' : 'Nouveau produit'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setEditTarget(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            {[
+              { key: 'name', label: 'Nom *', placeholder: 'Ex: Oud Élixir' },
+              { key: 'brand', label: 'Marque *', placeholder: 'Ex: Maison Parfum' },
+              { key: 'sku', label: 'SKU *', placeholder: 'Ex: MP-001' },
+              { key: 'priceCents', label: 'Prix (€) *', placeholder: 'Ex: 89.90', type: 'number' },
+              { key: 'stock', label: 'Stock initial', placeholder: '0', type: 'number' },
+            ].map(({ key, label, placeholder, type }) => (
+              <div key={key}>
+                <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                <input
+                  type={type ?? 'text'}
+                  value={productForm[key as keyof ProductForm] as string}
+                  onChange={(e) => setProductForm((f) => ({ ...f, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                />
+              </div>
+            ))}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+              <textarea
+                value={productForm.description}
+                onChange={(e) => setProductForm((f) => ({ ...f, description: e.target.value }))}
+                rows={3}
+                className="w-full border rounded px-3 py-2 text-sm"
+                placeholder="Description du parfum…"
+              />
+            </div>
+            <div className="flex gap-6">
+              {[
+                { key: 'isActive', label: 'Actif' },
+                { key: 'isFeatured', label: 'Mis en avant' },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={productForm[key as keyof ProductForm] as boolean}
+                    onChange={(e) => setProductForm((f) => ({ ...f, [key]: e.target.checked }))}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setEditTarget(null);
+                }}
+                className="px-4 py-2 text-sm border rounded hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={editTarget ? handleEdit : handleCreate}
+                className="px-4 py-2 text-sm bg-gray-900 text-white rounded hover:bg-gray-800"
+              >
+                {editTarget ? 'Enregistrer' : 'Créer'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Stock adjustment modal */}

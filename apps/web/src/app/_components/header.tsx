@@ -1,14 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 import { useAuth } from '@/lib/auth';
 import { useCartStore } from '@/lib/cart-store';
 
 export function Header() {
+  const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
   const { toggleCart, totalItems } = useCartStore();
   const count = totalItems();
+
+  if (pathname.startsWith('/admin')) return null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-brand-gold/20 bg-brand-ivory/95 backdrop-blur">
