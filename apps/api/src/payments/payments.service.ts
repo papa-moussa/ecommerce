@@ -1,10 +1,12 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { type Stripe } from 'stripe';
 
 import { PrismaService } from '../prisma/prisma.service';
 import { StockService } from '../stock/stock.service';
 
 import { StripeService } from './stripe.service';
+
+type WebhookEvent = ReturnType<StripeService['constructWebhookEvent']>;
+type PaymentIntent = { id: string };
 
 @Injectable()
 export class PaymentsService {
@@ -18,7 +20,7 @@ export class PaymentsService {
 
   async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
     // Step 1: Verify and parse the Stripe event
-    let event: Stripe.Event;
+    let event: WebhookEvent;
     try {
       event = this.stripeService.constructWebhookEvent(rawBody, signature);
     } catch (err) {
@@ -52,12 +54,12 @@ export class PaymentsService {
     try {
       switch (event.type) {
         case 'payment_intent.succeeded': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          const paymentIntent = event.data.object as PaymentIntent;
           await this.handlePaymentIntentSucceeded(paymentIntent);
           break;
         }
         case 'payment_intent.payment_failed': {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          const paymentIntent = event.data.object as PaymentIntent;
           await this.handlePaymentIntentFailed(paymentIntent);
           break;
         }
@@ -84,7 +86,7 @@ export class PaymentsService {
     }
   }
 
-  private async handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+  private async handlePaymentIntentSucceeded(paymentIntent: PaymentIntent): Promise<void> {
     const payment = await this.prisma.payment.findUnique({
       where: { stripePaymentIntentId: paymentIntent.id },
       select: { id: true, orderId: true },
@@ -115,7 +117,7 @@ export class PaymentsService {
     }
   }
 
-  private async handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent): Promise<void> {
+  private async handlePaymentIntentFailed(paymentIntent: PaymentIntent): Promise<void> {
     const payment = await this.prisma.payment.findUnique({
       where: { stripePaymentIntentId: paymentIntent.id },
       select: { id: true, orderId: true },

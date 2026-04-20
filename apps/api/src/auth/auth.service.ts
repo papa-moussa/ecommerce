@@ -22,6 +22,7 @@ import { type RegisterDto } from './dto/register.dto';
 import { type ResetPasswordDto } from './dto/reset-password.dto';
 import { type VerifyEmailDto } from './dto/verify-email.dto';
 import { type JwtPayload } from './strategies/jwt.strategy';
+import { TotpService } from './totp.service';
 
 const REFRESH_TOKEN_TTL_DAYS = 7;
 const EMAIL_VERIFY_TTL_HOURS = 24;
@@ -49,6 +50,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService<AppConfig, true>,
     private readonly mail: MailService,
+    private readonly totp: TotpService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ user: PublicUser; tokens: AuthTokens }> {
@@ -61,12 +63,25 @@ export class AuthService {
     return { user, tokens };
   }
 
-  async login(dto: LoginDto): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+  async login(
+    dto: LoginDto,
+  ): Promise<
+    | { user: PublicUser; tokens: AuthTokens; requires2FA?: never }
+    | { requires2FA: true; tempToken: string; user?: never; tokens?: never }
+  > {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
+    if (user.blocked) throw new UnauthorizedException('Compte bloqué. Contactez le support.');
+
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    // ADMIN with 2FA enabled → 2-step flow
+    if (user.role === 'ADMIN' && user.totpEnabled) {
+      const tempToken = this.totp.issueTempToken(user);
+      return { requires2FA: true, tempToken };
+    }
 
     const { passwordHash: _ph, ...publicUser } = user;
     const tokens = await this.generateTokens(user);

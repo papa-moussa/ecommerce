@@ -113,6 +113,13 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export interface Auth2FAResponse {
+  requires2FA: true;
+  tempToken: string;
+}
+
+export type LoginResponse = AuthResponse | Auth2FAResponse;
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -180,7 +187,7 @@ export const clientApi = {
   },
   auth: {
     login: (data: LoginData) =>
-      clientFetch<AuthResponse>('/auth/login', {
+      clientFetch<LoginResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
       }),

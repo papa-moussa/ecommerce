@@ -40,6 +40,11 @@ export const envSchema = z.object({
   SENTRY_DSN: z.string().optional().default(''),
   SENTRY_ENVIRONMENT: z.string().default('development'),
   SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+
+  // Cloudinary (upload signing — Sprint 3)
+  CLOUDINARY_CLOUD_NAME: z.string().default(''),
+  CLOUDINARY_API_KEY: z.string().default(''),
+  CLOUDINARY_API_SECRET: z.string().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

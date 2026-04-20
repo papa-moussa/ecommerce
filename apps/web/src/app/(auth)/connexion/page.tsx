@@ -21,7 +21,13 @@ export default function ConnexionPage(): JSX.Element {
     setError('');
     setIsPending(true);
     try {
-      await login(form);
+      const result = await login(form);
+      if (result.requires2FA) {
+        router.push(
+          `/verify-2fa?t=${encodeURIComponent(result.tempToken!)}&redirect=${encodeURIComponent(redirect)}`,
+        );
+        return;
+      }
       router.push(redirect);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion.');

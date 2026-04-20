@@ -16,6 +16,11 @@ const mockUser: User = {
   phone: null,
   role: 'CUSTOMER',
   emailVerified: false,
+  blocked: false,
+  marketingOptIn: true,
+  totpSecret: null,
+  totpEnabled: false,
+  backupCodes: [],
   createdAt: new Date(),
   updatedAt: new Date(),
 };

@@ -17,11 +17,14 @@ const USER_PUBLIC_SELECT = {
   phone: true,
   role: true,
   emailVerified: true,
+  blocked: true,
+  marketingOptIn: true,
+  totpEnabled: true,
   createdAt: true,
   updatedAt: true,
 } as const;
 
-export type PublicUser = Omit<User, 'passwordHash'>;
+export type PublicUser = Omit<User, 'passwordHash' | 'totpSecret' | 'backupCodes'>;
 
 @Injectable()
 export class UsersService {

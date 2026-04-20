@@ -5,10 +5,15 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 
 import { clientApi, type LoginData, type RegisterData, setAccessToken } from './api';
 
+export interface LoginResult {
+  requires2FA?: true;
+  tempToken?: string;
+}
+
 interface AuthCtx {
   user: User | null;
   isLoading: boolean;
-  login: (data: LoginData) => Promise<void>;
+  login: (data: LoginData) => Promise<LoginResult>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -32,10 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (data: LoginData) => {
-    const { user: u, accessToken } = await clientApi.auth.login(data);
-    setAccessToken(accessToken);
-    setUser(u);
+  const login = useCallback(async (data: LoginData): Promise<LoginResult> => {
+    const result = await clientApi.auth.login(data);
+    if ('requires2FA' in result && result.requires2FA) {
+      return {
+        requires2FA: true,
+        tempToken: (result as { requires2FA: true; tempToken: string }).tempToken,
+      };
+    }
+    const ok = result as { user: User; accessToken: string };
+    setAccessToken(ok.accessToken);
+    setUser(ok.user);
+    return {};
   }, []);
 
   const register = useCallback(async (data: RegisterData) => {

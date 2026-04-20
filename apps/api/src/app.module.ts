@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { CategoriesModule } from './categories/categories.module';
@@ -18,6 +19,7 @@ import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
 
@@ -60,6 +62,9 @@ import { UsersModule } from './users/users.module';
           SENTRY_DSN: config.get('SENTRY_DSN', { infer: true }),
           SENTRY_ENVIRONMENT: config.get('SENTRY_ENVIRONMENT', { infer: true }),
           SENTRY_TRACES_SAMPLE_RATE: config.get('SENTRY_TRACES_SAMPLE_RATE', { infer: true }),
+          CLOUDINARY_CLOUD_NAME: config.get('CLOUDINARY_CLOUD_NAME', { infer: true }),
+          CLOUDINARY_API_KEY: config.get('CLOUDINARY_API_KEY', { infer: true }),
+          CLOUDINARY_API_SECRET: config.get('CLOUDINARY_API_SECRET', { infer: true }),
         }),
     }),
     PrismaModule,
@@ -74,6 +79,8 @@ import { UsersModule } from './users/users.module';
     OrdersModule,
     PaymentsModule,
     JobsModule,
+    AdminModule,
+    ReviewsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })
