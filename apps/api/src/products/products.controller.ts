@@ -20,6 +20,11 @@ export class ProductsController {
     return this.productsService.findFeatured();
   }
 
+  @Get('bestsellers')
+  findBestsellers() {
+    return this.productsService.findBestsellers();
+  }
+
   @Get(':slug')
   findOne(@Param('slug') slug: string) {
     return this.productsService.findBySlug(slug);

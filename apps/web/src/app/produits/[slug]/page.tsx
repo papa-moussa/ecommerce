@@ -1,13 +1,16 @@
 import type { Metadata } from 'next';
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { JsonLd } from '@/components/json-ld';
+import { WishlistButton } from '@/components/wishlist-button';
 import { serverApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 
 import { ProductCard } from '../../_components/product-card';
 import { AddToCartButton } from '../_components/add-to-cart-button';
+import { OlfactoryNotes } from '../_components/olfactory-notes';
+import { ProductGallery } from '../_components/product-gallery';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -26,9 +29,35 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3002';
+
   try {
     const p = await serverApi.products.bySlug(params.slug);
-    return { title: `${p.brand} ${p.name}`, description: p.description };
+    const title = `${p.brand} ${p.name}`;
+    const canonicalUrl = `${siteUrl}/produits/${p.slug}`;
+    const ogImage = p.images.find((i) => i.isMain)?.url ?? p.images[0]?.url;
+
+    return {
+      title,
+      description: p.description,
+      alternates: { canonical: canonicalUrl },
+      openGraph: {
+        title,
+        description: p.description,
+        url: canonicalUrl,
+        siteName: 'Maison Parfum',
+        type: 'website',
+        ...(ogImage && {
+          images: [{ url: ogImage, width: 800, height: 800, alt: title }],
+        }),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description: p.description,
+        ...(ogImage && { images: [ogImage] }),
+      },
+    };
   } catch {
     return { title: 'Produit introuvable' };
   }
@@ -46,10 +75,63 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
 
   const related = await serverApi.products.related(product.id).catch(() => []);
   const mainImage = product.images.find((i) => i.isMain) ?? product.images[0];
-  const otherImages = product.images.filter((i) => !i.isMain).slice(0, 3);
+  // Sort: main image first, then by position
+  const galleryImages = [
+    ...product.images.filter((i) => i.isMain),
+    ...product.images.filter((i) => !i.isMain),
+  ];
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3002';
+  const productUrl = `${siteUrl}/produits/${product.slug}`;
+
+  const availability =
+    product.stockStatus === 'OUT_OF_STOCK'
+      ? 'https://schema.org/OutOfStock'
+      : 'https://schema.org/InStock';
+
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${product.brand} ${product.name}`,
+    description: product.description,
+    sku: product.sku,
+    brand: { '@type': 'Brand', name: product.brand },
+    ...(mainImage && { image: mainImage.url }),
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: product.currency,
+      price: (product.priceCents / 100).toFixed(2),
+      availability,
+      seller: { '@type': 'Organization', name: 'Maison Parfum' },
+    },
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Accueil', item: siteUrl },
+      { '@type': 'ListItem', position: 2, name: 'Catalogue', item: `${siteUrl}/produits` },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.category.name,
+        item: `${siteUrl}/produits?category=${product.category.slug}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 4,
+        name: `${product.brand} ${product.name}`,
+        item: productUrl,
+      },
+    ],
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10">
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd} />
       {/* Breadcrumb */}
       <nav className="mb-8 flex items-center gap-2 text-xs text-brand-ink/40">
         <Link href="/produits" className="hover:text-brand-ink">
@@ -67,48 +149,28 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
 
       <div className="grid gap-12 lg:grid-cols-2">
         {/* Gallery */}
-        <div className="space-y-3">
-          {mainImage ? (
-            <div className="relative aspect-square overflow-hidden rounded-xl bg-white">
-              <Image
-                src={mainImage.url}
-                alt={mainImage.alt ?? `${product.brand} ${product.name}`}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            <div className="flex aspect-square items-center justify-center rounded-xl bg-white text-brand-ink/20">
-              —
-            </div>
-          )}
-          {otherImages.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
-              {otherImages.map((img, i) => (
-                <div key={i} className="relative aspect-square overflow-hidden rounded-lg bg-white">
-                  <Image
-                    src={img.url}
-                    alt={img.alt ?? ''}
-                    fill
-                    sizes="(max-width: 1024px) 33vw, 17vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+        <div className="lg:sticky lg:top-8 lg:self-start">
+          <ProductGallery images={galleryImages} productName={`${product.brand} ${product.name}`} />
         </div>
 
         {/* Details */}
         <div className="space-y-6">
           <div>
-            <p className="text-xs uppercase tracking-widest text-brand-ink/40">{product.brand}</p>
-            <h1 className="mt-1 font-serif text-4xl text-brand-ink">{product.name}</h1>
-            <p className="mt-1 text-sm text-brand-ink/40">
-              {GENDER_LABEL[product.gender] ?? product.gender}
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-brand-ink/40">
+                  {product.brand}
+                </p>
+                <h1 className="mt-1 font-serif text-4xl text-brand-ink">{product.name}</h1>
+                <p className="mt-1 text-sm text-brand-ink/40">
+                  {GENDER_LABEL[product.gender] ?? product.gender}
+                </p>
+              </div>
+              <WishlistButton
+                productId={product.id}
+                className="mt-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-brand-ink/10 transition hover:border-brand-gold hover:bg-brand-ivory"
+              />
+            </div>
           </div>
 
           <p className="text-2xl font-medium text-brand-ink">
@@ -151,60 +213,17 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
           <div className="border-t border-brand-ink/10 pt-6">
             <p className="leading-relaxed text-brand-ink/70">{product.description}</p>
           </div>
-
-          {product.storyTelling && (
-            <div className="border-t border-brand-ink/10 pt-6">
-              <h2 className="mb-2 font-serif text-lg text-brand-ink">Histoire</h2>
-              <p className="text-sm leading-relaxed text-brand-ink/60">{product.storyTelling}</p>
-            </div>
-          )}
-
-          {(product.topNotes.length > 0 ||
-            product.heartNotes.length > 0 ||
-            product.baseNotes.length > 0) && (
-            <div className="border-t border-brand-ink/10 pt-6">
-              <h2 className="mb-4 font-serif text-lg text-brand-ink">Notes olfactives</h2>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                {product.topNotes.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-widest text-brand-ink/40">Tête</p>
-                    <ul className="space-y-1">
-                      {product.topNotes.map((n) => (
-                        <li key={n} className="text-brand-ink/60">
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {product.heartNotes.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-widest text-brand-ink/40">Cœur</p>
-                    <ul className="space-y-1">
-                      {product.heartNotes.map((n) => (
-                        <li key={n} className="text-brand-ink/60">
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {product.baseNotes.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs uppercase tracking-widest text-brand-ink/40">Fond</p>
-                    <ul className="space-y-1">
-                      {product.baseNotes.map((n) => (
-                        <li key={n} className="text-brand-ink/60">
-                          {n}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* Olfactory pyramid + storytelling — full width below the grid */}
+      <div className="mt-16">
+        <OlfactoryNotes
+          topNotes={product.topNotes}
+          heartNotes={product.heartNotes}
+          baseNotes={product.baseNotes}
+          storyTelling={product.storyTelling}
+        />
       </div>
 
       {related.length > 0 && (

@@ -1,4 +1,4 @@
-// Prisma schema — Sprint 3: Admin Panel (AuditLog, Review, 2FA, blocked).
+// Prisma schema — Sprint 4: Wishlist added.
 
 generator client {
   provider = "prisma-client-js"
@@ -48,6 +48,7 @@ model User {
   orders             Order[]
   reviews            Review[]
   auditLogs          AuditLog[]
+  wishlistItems      Wishlist[]
 
   @@index([email])
 }
@@ -182,6 +183,7 @@ model Product {
   cartItems      CartItem[]
   orderItems     OrderItem[]
   reviews        Review[]
+  wishlistItems  Wishlist[]
 
   @@index([categoryId])
   @@index([isFeatured, isActive])
@@ -417,6 +419,23 @@ model AuditLog {
   @@index([resource, createdAt(sort: Desc)])
   @@index([action])
   @@index([createdAt(sort: Desc)])
+}
+
+// ---------------------------------------------------------------------------
+// Sprint 4 — Wishlist
+// ---------------------------------------------------------------------------
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------------------

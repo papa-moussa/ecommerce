@@ -22,6 +22,7 @@ import { ProductsModule } from './products/products.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { UsersModule } from './users/users.module';
     JobsModule,
     AdminModule,
     ReviewsModule,
+    WishlistModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })

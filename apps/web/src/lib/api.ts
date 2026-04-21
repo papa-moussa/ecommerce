@@ -1,4 +1,9 @@
-import type { Paginated, ProductCard, ProductDetail, User } from '@ecommerce/shared-types';
+import type {
+  Paginated,
+  ProductCard as ProductCardType,
+  ProductDetail,
+  User,
+} from '@ecommerce/shared-types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
 
@@ -22,13 +27,16 @@ export const serverApi = {
   products: {
     list: (params?: Record<string, string>) => {
       const qs = params && Object.keys(params).length ? `?${new URLSearchParams(params)}` : '';
-      return serverFetch<Paginated<ProductCard>>(`/products${qs}`, { cache: 'no-store' });
+      return serverFetch<Paginated<ProductCardType>>(`/products${qs}`, { cache: 'no-store' });
     },
     bySlug: (slug: string) =>
       serverFetch<ProductDetail>(`/products/${slug}`, { next: { revalidate: 3600 } }),
     related: (id: string) =>
-      serverFetch<ProductCard[]>(`/products/${id}/related`, { next: { revalidate: 3600 } }),
-    featured: () => serverFetch<ProductCard[]>('/products/featured', { next: { revalidate: 900 } }),
+      serverFetch<ProductCardType[]>(`/products/${id}/related`, { next: { revalidate: 3600 } }),
+    featured: () =>
+      serverFetch<ProductCardType[]>('/products/featured', { next: { revalidate: 900 } }),
+    bestsellers: () =>
+      serverFetch<ProductCardType[]>('/products/bestsellers', { next: { revalidate: 3600 } }),
   },
 };
 
@@ -164,6 +172,15 @@ export interface CreateOrderResult {
 }
 
 export const clientApi = {
+  wishlist: {
+    list: () => clientFetch<ProductCardType[]>('/wishlist'),
+    add: (productId: string) =>
+      clientFetch<{ productId: string; wishlisted: boolean }>(`/wishlist/${productId}`, {
+        method: 'POST',
+      }),
+    remove: (productId: string) =>
+      clientFetch<void>(`/wishlist/${productId}`, { method: 'DELETE' }),
+  },
   cart: {
     sync: (items: CartItemInput[]) =>
       clientFetch<void>('/cart/sync', {

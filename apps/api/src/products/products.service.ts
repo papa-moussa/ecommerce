@@ -106,6 +106,37 @@ export class ProductsService {
     });
   }
 
+  async findBestsellers() {
+    const since = new Date();
+    since.setDate(since.getDate() - 90);
+
+    const top = await this.prisma.orderItem.groupBy({
+      by: ['productId'],
+      where: {
+        order: {
+          status: { in: ['PAID', 'DELIVERED'] },
+          createdAt: { gte: since },
+        },
+      },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: 8,
+    });
+
+    if (top.length === 0) return [];
+
+    const productIds = top.map((t) => t.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, isActive: true },
+      select: PRODUCT_CARD_SELECT,
+    });
+
+    // Preserve ranking order
+    return productIds
+      .map((id) => products.find((p) => p.id === id))
+      .filter((p): p is NonNullable<typeof p> => p !== undefined);
+  }
+
   async findRelated(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
