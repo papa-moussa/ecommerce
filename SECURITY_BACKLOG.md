@@ -510,7 +510,7 @@ app.use(
 | **Effort estimé** | 30 min |
 | **Priorité** | P1 — < 7 jours |
 | **Responsable suggéré** | DevOps / Backend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -746,7 +746,7 @@ async twoFaFinishSetup(@Body() body: { tempToken: string; code: string }, ...) {
 | **Effort estimé** | 4h |
 | **Priorité** | P1 — < 7 jours |
 | **Responsable suggéré** | Backend Dev Senior |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -828,7 +828,7 @@ async login(dto: LoginDto) {
 | **Effort estimé** | 30 min |
 | **Priorité** | P1 — < 7 jours (Quick Win) |
 | **Responsable suggéré** | DevOps / CTO |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -875,7 +875,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_VOTRE_CLE_PUBLIQUE_LIVE
 | **Effort estimé** | 3h (configuration + tests de régression frontend) |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | Backend Dev / Frontend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -944,7 +944,7 @@ app.use(
 | **Effort estimé** | 1h |
 | **Priorité** | P2 — Sprint suivant (Quick Win) |
 | **Responsable suggéré** | Backend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -987,7 +987,7 @@ const ip = req.ip ?? req.socket.remoteAddress;
 | **Effort estimé** | 4h (implémentation + migration) |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | Backend Dev Senior |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -1062,7 +1062,7 @@ openssl rand -hex 32
 | **Effort estimé** | 2h |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | DevOps / Lead Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -1164,7 +1164,7 @@ jobs:
 | **Effort estimé** | 30 min (Quick Win) |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | Backend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -1209,7 +1209,7 @@ const body: ErrorResponse = {
 | **Effort estimé** | 1h (Quick Win) |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | Backend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -1268,7 +1268,7 @@ getTimeseries(
 | **Effort estimé** | 3h |
 | **Priorité** | P2 — Sprint suivant |
 | **Responsable suggéré** | Backend Dev + Frontend Dev |
-| **Statut** | 🔴 OUVERT |
+| **Statut** | ✅ CORRIGÉ — branche `security/phase-2-haute-sprint` (2026-05-07) |
 
 **Recommandation technique**
 
@@ -1640,13 +1640,13 @@ MAI 2026 (Semaine 1-2)          JUIN 2026 (Semaine 3-6)        JUILLET 2026 (Sem
 
 PHASE 1 — URGENCE (J+0 à J+2)  PHASE 2 — CRITIQUE (J+3 à J+7) PHASE 3 — SPRINT (J+8 à J+21)
 ──────────────────────────────  ────────────────────────────── ──────────────────────────────
-SEC-001  Rotation secrets    ✅  SEC-004  HTTPS + TLS         ✅  SEC-011  CSP explicite
-SEC-002  Fix bypass 2FA      ✅  SEC-003  Hardcoded creds     ✅  SEC-012  Trust proxy / IP
-SEC-005  Stripe webhook      ✅  SEC-006  Middleware admin FE  ✅  SEC-013  Chiffrement TOTP
-SEC-010  Stripe live keys    ✅  SEC-007  Throttle refresh    ✅  SEC-014  CI Security scan
-                                 SEC-008  Throttle TOTP       ✅  SEC-015  Masquer path erreurs
-                                 SEC-009  Account lockout     ✅  SEC-016  Valider metric param
-                                                                  SEC-017  Tokens URL → path
+SEC-001  Rotation secrets    ✅  SEC-004  HTTPS + TLS         ✅  SEC-011  CSP explicite       ✅
+SEC-002  Fix bypass 2FA      ✅  SEC-003  Hardcoded creds     ✅  SEC-012  Trust proxy / IP    ✅
+SEC-005  Stripe webhook      ✅  SEC-006  Middleware admin FE  ✅  SEC-013  Chiffrement TOTP    ✅
+SEC-010  Stripe live keys    ✅  SEC-007  Throttle refresh    ✅  SEC-014  CI Security scan    ✅
+                                 SEC-008  Throttle TOTP       ✅  SEC-015  Masquer path erreurs ✅
+                                 SEC-009  Account lockout     ✅  SEC-016  Valider metric param ✅
+                                                                  SEC-017  Tokens URL → path   ✅
 
 
 AOÛT 2026 (Semaine 11-14)       SEPT–OCT 2026 (Mois 3-4)
@@ -1693,19 +1693,19 @@ SEC-021  IP prod → variable env SEC-025  Maj NestJS 11 + Prisma 6
 | SEC-002 | Bypass 2FA — secret JWT distinct | 🔴 CRITIQUE | P0 | 3h | Backend Dev | ✅ CORRIGÉ |
 | SEC-003 | Credentials admin hardcodés | 🔴 CRITIQUE | P0 | 2h | Backend Dev | ✅ CORRIGÉ |
 | SEC-004 | HTTPS + TLS + HSTS | 🔴 CRITIQUE | P0 | 5h | DevOps | ✅ CORRIGÉ |
-| SEC-005 | Stripe webhook secret placeholder | 🟠 HAUTE | P1 | 30m | DevOps | 🔴 OUVERT |
+| SEC-005 | Stripe webhook secret placeholder | 🟠 HAUTE | P1 | 30m | DevOps | ✅ CORRIGÉ |
 | SEC-006 | Middleware admin frontend rôle ADMIN | 🟠 HAUTE | P1 | 3h | Frontend Dev | ✅ CORRIGÉ |
 | SEC-007 | Throttle sur /auth/refresh | 🟠 HAUTE | P1 | 30m | Backend Dev | ✅ CORRIGÉ |
 | SEC-008 | Throttle sur endpoints TOTP | 🟠 HAUTE | P1 | 45m | Backend Dev | ✅ CORRIGÉ |
-| SEC-009 | Account lockout après 5 échecs login | 🟠 HAUTE | P1 | 4h | Backend Dev | 🔴 OUVERT |
-| SEC-010 | Stripe live keys en production | 🟠 HAUTE | P1 | 30m | DevOps | 🔴 OUVERT |
-| SEC-011 | CSP explicite Helmet | 🟡 MOYENNE | P2 | 3h | Backend Dev | 🔴 OUVERT |
-| SEC-012 | Trust proxy + req.ip | 🟡 MOYENNE | P2 | 1h | Backend Dev | 🔴 OUVERT |
-| SEC-013 | Chiffrement TOTP secret (AES-256-GCM) | 🟡 MOYENNE | P2 | 4h | Backend Dev | 🔴 OUVERT |
-| SEC-014 | CI/CD — pnpm audit + Trivy + CodeQL | 🟡 MOYENNE | P2 | 2h | DevOps | 🔴 OUVERT |
-| SEC-015 | Masquer path dans erreurs production | 🟡 MOYENNE | P2 | 30m | Backend Dev | 🔴 OUVERT |
-| SEC-016 | Valider paramètre `metric` admin | 🟡 MOYENNE | P2 | 1h | Backend Dev | 🔴 OUVERT |
-| SEC-017 | Tokens reset → path (non query string) | 🟡 MOYENNE | P2 | 3h | BE + FE Dev | 🔴 OUVERT |
+| SEC-009 | Account lockout après 5 échecs login | 🟠 HAUTE | P1 | 4h | Backend Dev | ✅ CORRIGÉ |
+| SEC-010 | Stripe live keys en production | 🟠 HAUTE | P1 | 30m | DevOps | ✅ CORRIGÉ |
+| SEC-011 | CSP explicite Helmet | 🟡 MOYENNE | P2 | 3h | Backend Dev | ✅ CORRIGÉ |
+| SEC-012 | Trust proxy + req.ip | 🟡 MOYENNE | P2 | 1h | Backend Dev | ✅ CORRIGÉ |
+| SEC-013 | Chiffrement TOTP secret (AES-256-GCM) | 🟡 MOYENNE | P2 | 4h | Backend Dev | ✅ CORRIGÉ |
+| SEC-014 | CI/CD — pnpm audit + Trivy + CodeQL | 🟡 MOYENNE | P2 | 2h | DevOps | ✅ CORRIGÉ |
+| SEC-015 | Masquer path dans erreurs production | 🟡 MOYENNE | P2 | 30m | Backend Dev | ✅ CORRIGÉ |
+| SEC-016 | Valider paramètre `metric` admin | 🟡 MOYENNE | P2 | 1h | Backend Dev | ✅ CORRIGÉ |
+| SEC-017 | Tokens reset → path (non query string) | 🟡 MOYENNE | P2 | 3h | BE + FE Dev | ✅ CORRIGÉ |
 | SEC-018 | Sentry — tracer 401/403/429 | 🟢 FAIBLE | P3 | 1h | Backend Dev | 🔴 OUVERT |
 | SEC-019 | Cookie SameSite strict + path restreint | 🟢 FAIBLE | P3 | 1h | Backend Dev | ✅ CORRIGÉ |
 | SEC-020 | Images Docker — digests SHA256 | 🟢 FAIBLE | P3 | 2h | DevOps | 🔴 OUVERT |
