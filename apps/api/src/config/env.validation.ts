@@ -15,6 +15,9 @@ export const envSchema = z.object({
 
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
+  // SEC-002: Separate secret for 2FA temp tokens — prevents a tempToken from
+  // being accepted as a full accessToken by jwt.strategy.ts (defense-in-depth).
+  JWT_TEMP_SECRET: z.string().min(32),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
 

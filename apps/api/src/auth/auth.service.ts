@@ -96,7 +96,7 @@ export class AuthService {
     return { user: publicUser, tokens };
   }
 
-  async refresh(rawToken: string): Promise<AuthTokens> {
+  async refresh(rawToken: string): Promise<AuthTokens & { user: Pick<User, 'id' | 'role'> }> {
     const tokenHash = hashToken(rawToken);
     const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
 
@@ -111,8 +111,11 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { id: stored.userId } });
     if (!user) throw new UnauthorizedException();
+    if (user.blocked) throw new UnauthorizedException('Compte bloqué.');
 
-    return this.generateTokens(user);
+    const tokens = await this.generateTokens(user);
+    // SEC-004: return user so the controller can set the user_session cookie
+    return { ...tokens, user: { id: user.id, role: user.role } };
   }
 
   async logout(rawToken: string): Promise<void> {

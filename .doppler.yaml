@@ -1,0 +1,13 @@
+# Doppler secrets manager configuration
+# https://docs.doppler.com/docs/cli
+#
+# Setup:
+#   1. Install CLI: brew install dopplerhq/cli/doppler  (ou scoop install doppler)
+#   2. Authenticate: doppler login
+#   3. Configure project: doppler setup
+#   4. Run API with secrets: doppler run -- pnpm --filter api dev
+#   5. Run in Docker: use `doppler run --` as entrypoint override
+
+setup:
+  project: maison-parfum
+  config: dev # dev | staging | production

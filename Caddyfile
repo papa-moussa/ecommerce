@@ -1,0 +1,69 @@
+# SEC-004: Caddy reverse proxy — automatic TLS via Let's Encrypt
+# Replace {$DOMAIN} with your actual domain (set via DOMAIN env var or directly).
+# Caddy auto-renews certificates and redirects HTTP → HTTPS.
+#
+# Usage: DOMAIN=maisonparfum.com docker-compose -f docker-compose.prod.yml up
+#
+# Requirements:
+#   - Port 80 and 443 must be reachable from internet (for ACME challenge)
+#   - Domain DNS must point to this server's public IP
+#   - DOMAIN env var set (or replace {$DOMAIN} below with your actual domain)
+
+{$DOMAIN} {
+    # Automatic HTTPS — Let's Encrypt certificate provisioned on first start
+    # HSTS (Strict-Transport-Security) is added by Caddy automatically
+
+    # Route /api/* → NestJS backend
+    handle /api/* {
+        reverse_proxy api:3001 {
+            # Forward client IP to NestJS so trust proxy + audit logs work (SEC-012)
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Stripe webhook needs raw body — no body modification
+    handle /api/payments/webhook {
+        reverse_proxy api:3001
+    }
+
+    # Route everything else → Next.js frontend
+    handle {
+        reverse_proxy web:3000 {
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Security headers (supplement helmet defaults)
+    header {
+        # Remove server information disclosure
+        -Server
+        # Prevent clickjacking
+        X-Frame-Options "SAMEORIGIN"
+        # XSS protection (legacy browsers)
+        X-XSS-Protection "1; mode=block"
+        # Prevent MIME sniffing
+        X-Content-Type-Options "nosniff"
+        # Referrer policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions policy — disable unused browser features
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Redirect www → non-www (optional, adjust to your domain)
+www.{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}

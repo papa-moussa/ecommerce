@@ -1,7 +1,28 @@
-# Production stack (VPS deploy example).
-# Use a managed Postgres in real prod — this file is a reference.
+# Production stack — with Caddy reverse proxy for TLS termination (SEC-004).
+# SEC-021: No hardcoded IPs. All values come from environment variables / Doppler.
+# Usage: doppler run -- docker-compose -f docker-compose.prod.yml up -d
 
 services:
+  # ---------------------------------------------------------------------------
+  # SEC-004: Caddy — automatic TLS (Let's Encrypt) + HTTP→HTTPS redirect
+  # ---------------------------------------------------------------------------
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    networks:
+      - frontend
+
   postgres:
     image: postgres:16-alpine
     restart: always
@@ -11,6 +32,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # SEC-021: No external port exposure — only accessible within Docker network
+    expose:
+      - '5432'
+    networks:
+      - backend
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 10s
@@ -23,6 +49,11 @@ services:
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD}']
     volumes:
       - redis_data:/data
+    # SEC-021: No external port exposure — Redis stays on backend network only
+    expose:
+      - '6379'
+    networks:
+      - backend
 
   api:
     build:
@@ -38,20 +69,96 @@ services:
       NODE_ENV: production
       PORT: 3001
       API_PREFIX: api
+      # SEC-004: CORS_ORIGIN now uses the real HTTPS domain (set in Doppler)
       CORS_ORIGIN: ${CORS_ORIGIN}
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
-      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      # SEC-002: JWT_TEMP_SECRET is mandatory and distinct from JWT_ACCESS_SECRET
+      JWT_TEMP_SECRET: ${JWT_TEMP_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      SENTRY_DSN: ${SENTRY_DSN}
+      # SEC-004: COOKIE_SECURE must be true in production behind HTTPS
+      COOKIE_SECURE: 'true'
+      SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
-    ports:
-      - '3001:3001'
+      # Stripe
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      # SMTP / Email
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      # App
+      APP_URL: ${APP_URL}
+      # Cloudinary
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      # Algolia
+      ALGOLIA_APP_ID: ${ALGOLIA_APP_ID:-}
+      ALGOLIA_API_KEY: ${ALGOLIA_API_KEY:-}
+      ALGOLIA_SEARCH_KEY: ${ALGOLIA_SEARCH_KEY:-}
+      # Twilio
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      # Chatbase
+      CHATBASE_SYNC_SECRET: ${CHATBASE_SYNC_SECRET:-}
+      # SEC-003: Admin seed credentials from environment (never hardcoded)
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_FIRST_NAME: ${ADMIN_FIRST_NAME:-Admin}
+      ADMIN_LAST_NAME: ${ADMIN_LAST_NAME:-User}
+    # SEC-004: API only exposes within Docker network — Caddy proxies inbound traffic
+    expose:
+      - '3001'
+    networks:
+      - backend
+      - frontend
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # SEC-004: All URLs now use HTTPS — set NEXT_PUBLIC_API_URL and NEXT_PUBLIC_SITE_URL in Doppler
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_ALGOLIA_APP_ID: ${NEXT_PUBLIC_ALGOLIA_APP_ID:-}
+        NEXT_PUBLIC_ALGOLIA_SEARCH_KEY: ${NEXT_PUBLIC_ALGOLIA_SEARCH_KEY:-}
+    restart: always
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      # SEC-004: Required by Next.js Edge middleware for JWT verification
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+    # SEC-004: Web only exposes within Docker network — Caddy proxies inbound traffic
+    expose:
+      - '3000'
+    networks:
+      - frontend
 
 volumes:
   postgres_data:
   redis_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  # backend: DB + Redis — not reachable from internet
+  backend:
+    driver: bridge
+  # frontend: API + Web + Caddy — Caddy is the only internet-facing service
+  frontend:
+    driver: bridge

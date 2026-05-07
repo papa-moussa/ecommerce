@@ -89,11 +89,17 @@ export class TotpService {
   // Login step-2 — verify code and issue real tokens
   // ---------------------------------------------------------------------------
 
-  async verifyLogin(tempToken: string, code: string): Promise<AuthTokens> {
+  async verifyLogin(
+    tempToken: string,
+    code: string,
+  ): Promise<{ tokens: AuthTokens; user: Pick<User, 'id' | 'role'> }> {
     let payload: TempTokenPayload;
     try {
+      // SEC-002: verify with JWT_TEMP_SECRET — a secret entirely distinct from
+      // JWT_ACCESS_SECRET so a temp token is cryptographically rejected by the
+      // main JwtStrategy even if the twofa claim check were bypassed.
       payload = this.jwt.verify<TempTokenPayload>(tempToken, {
-        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+        secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
       });
     } catch {
       throw new UnauthorizedException('Temp token invalide ou expiré.');
@@ -111,7 +117,9 @@ export class TotpService {
       if (!used) throw new UnauthorizedException('Code invalide.');
     }
 
-    return this.generateTokens(user);
+    const tokens = await this.generateTokens(user);
+    // SEC-004: return user so controller can set the user_session cookie
+    return { tokens, user: { id: user.id, role: user.role } };
   }
 
   // ---------------------------------------------------------------------------
@@ -144,12 +152,13 @@ export class TotpService {
   async enableWithTempToken(
     tempToken: string,
     code: string,
-  ): Promise<{ backupCodes: string[]; tokens: AuthTokens }> {
+  ): Promise<{ backupCodes: string[]; tokens: AuthTokens; user: Pick<User, 'id' | 'role'> }> {
     const payload = this.verifyTempToken(tempToken);
     const result = await this.enable(payload.sub, code);
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: payload.sub } });
     const tokens = await this.generateTokens(user);
-    return { ...result, tokens };
+    // SEC-004: return user so controller can set the user_session cookie
+    return { ...result, tokens, user: { id: user.id, role: user.role } };
   }
 
   // ---------------------------------------------------------------------------
@@ -163,7 +172,14 @@ export class TotpService {
       role: user.role,
       twofa: true,
     };
-    return this.jwt.sign(payload, { expiresIn: TEMP_TOKEN_TTL_SECONDS });
+    // SEC-002: sign with JWT_TEMP_SECRET, not JWT_ACCESS_SECRET.
+    // This makes the temp token cryptographically incompatible with the
+    // access token verified by JwtStrategy — a tempToken presented to any
+    // protected endpoint will always fail signature verification.
+    return this.jwt.sign(payload, {
+      secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
+      expiresIn: TEMP_TOKEN_TTL_SECONDS,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -172,9 +188,12 @@ export class TotpService {
 
   private verifyTempToken(tempToken: string): TempTokenPayload {
     try {
-      return this.jwt.verify<TempTokenPayload>(tempToken, {
-        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+      // SEC-002: use JWT_TEMP_SECRET (distinct from JWT_ACCESS_SECRET)
+      const payload = this.jwt.verify<TempTokenPayload>(tempToken, {
+        secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
       });
+      if (!payload.twofa) throw new UnauthorizedException();
+      return payload;
     } catch {
       throw new UnauthorizedException('Temp token invalide ou expiré.');
     }
