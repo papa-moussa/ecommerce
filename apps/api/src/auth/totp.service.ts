@@ -217,7 +217,12 @@ export class TotpService {
    * Output format: `<ivHex>:<ciphertextHex>:<authTagHex>`
    */
   private encryptSecret(plaintext: string): string {
-    const key = Buffer.from(this.config.get('APP_ENCRYPTION_KEY', { infer: true }), 'hex');
+    // Cast to string: ConfigService<AppConfig>.get() with infer:true returns the exact type
+    // from the zod schema, but TS overload resolution for Buffer.from needs an explicit hint.
+    const key = Buffer.from(
+      this.config.get('APP_ENCRYPTION_KEY', { infer: true }) as string,
+      'hex',
+    );
     const iv = randomBytes(16);
     const cipher = createCipheriv('aes-256-gcm', key, iv);
     const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
@@ -230,7 +235,12 @@ export class TotpService {
    * Throws if the auth tag is invalid (tamper detection).
    */
   private decryptSecret(ciphertext: string): string {
-    const key = Buffer.from(this.config.get('APP_ENCRYPTION_KEY', { infer: true }), 'hex');
+    // Cast to string: ConfigService<AppConfig>.get() with infer:true returns the exact type
+    // from the zod schema, but TS overload resolution for Buffer.from needs an explicit hint.
+    const key = Buffer.from(
+      this.config.get('APP_ENCRYPTION_KEY', { infer: true }) as string,
+      'hex',
+    );
     const parts = ciphertext.split(':');
     if (parts.length !== 3) throw new Error('Invalid encrypted secret format');
     const [ivHex, encHex, tagHex] = parts as [string, string, string];
