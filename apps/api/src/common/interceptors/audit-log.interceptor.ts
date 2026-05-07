@@ -53,7 +53,9 @@ export class AuditLogInterceptor implements NestInterceptor {
     if (!user?.id) return next.handle();
 
     const resourceId = meta.idParam ? (req.params[meta.idParam] as string | undefined) : undefined;
-    const ip = (req.headers['x-forwarded-for'] as string | undefined) ?? req.socket.remoteAddress;
+    // SEC-012: use req.ip (trusts the configured proxy hop) instead of reading
+    // X-Forwarded-For directly — prevents IP spoofing in the audit log.
+    const ip = req.ip ?? req.socket.remoteAddress;
     const userAgent = req.headers['user-agent'];
 
     // Fetch before-state for PATCH/PUT/DELETE when we have an id

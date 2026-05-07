@@ -94,7 +94,17 @@ export class AdminService {
     };
   }
 
-  async getMetricsTimeseries(metric: string, period: '7d' | '30d' | '90d') {
+  // SEC-016: restrict metric to a known-good allowlist — prevents log injection
+  // and unexpected query behaviour from arbitrary string values.
+  private static readonly VALID_METRICS: readonly string[] = ['revenue', 'orders'];
+
+  async getMetricsTimeseries(metric: 'revenue' | 'orders', period: '7d' | '30d' | '90d') {
+    if (!AdminService.VALID_METRICS.includes(metric)) {
+      throw new BadRequestException(
+        `Métrique invalide. Valeurs autorisées : ${AdminService.VALID_METRICS.join(', ')}`,
+      );
+    }
+
     const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
     const from = new Date();
     from.setDate(from.getDate() - days);

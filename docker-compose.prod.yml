@@ -77,6 +77,8 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # SEC-002: JWT_TEMP_SECRET is mandatory and distinct from JWT_ACCESS_SECRET
       JWT_TEMP_SECRET: ${JWT_TEMP_SECRET}
+      # SEC-013: AES-256-GCM key for encrypting TOTP secrets at rest (64 hex chars)
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       LOG_LEVEL: ${LOG_LEVEL:-info}

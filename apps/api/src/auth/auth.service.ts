@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { type User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { CacheService } from '../common/cache/cache.service';
 import { type AppConfig } from '../config/configuration';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -28,6 +29,10 @@ const REFRESH_TOKEN_TTL_DAYS = 7;
 const EMAIL_VERIFY_TTL_HOURS = 24;
 const PASSWORD_RESET_TTL_HOURS = 1;
 const BCRYPT_ROUNDS = 12;
+
+// SEC-009: account lockout constants
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_TTL_MS = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 export interface AuthTokens {
   accessToken: string;
@@ -51,6 +56,7 @@ export class AuthService {
     private readonly config: ConfigService<AppConfig, true>,
     private readonly notifications: NotificationsService,
     private readonly totp: TotpService,
+    private readonly cache: CacheService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ user: PublicUser; tokens: AuthTokens }> {
@@ -73,13 +79,30 @@ export class AuthService {
     | { requires2FA: true; tempToken: string; role: string; user?: never; tokens?: never }
     | { requires2FASetup: true; tempToken: string; role: string; user?: never; tokens?: never }
   > {
+    const normalizedEmail = dto.email.toLowerCase();
+
+    // SEC-009: check lockout before touching the DB (fast Redis read)
+    await this.assertNotLocked(normalizedEmail);
+
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user) throw new UnauthorizedException('Invalid credentials');
+
+    if (!user) {
+      // Still record a failed attempt even when the email doesn't exist — prevents
+      // an attacker from inferring account existence via timing or lockout differences.
+      await this.recordFailedAttempt(normalizedEmail);
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     if (user.blocked) throw new UnauthorizedException('Compte bloqué. Contactez le support.');
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!valid) throw new UnauthorizedException('Invalid credentials');
+    if (!valid) {
+      await this.recordFailedAttempt(normalizedEmail);
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Successful credential check — clear any accumulated failure counter
+    await this.clearFailedAttempts(normalizedEmail);
 
     if (user.role === 'ADMIN') {
       const tempToken = this.totp.issueTempToken(user);
@@ -188,7 +211,9 @@ export class AuthService {
       data: { userId: user.id, tokenHash, expiresAt },
     });
 
-    const resetUrl = `${this.config.get('APP_URL', { infer: true })}/reset-password?token=${rawToken}`;
+    // SEC-017: token is a path segment, not a query param — avoids leaking it
+    // in server access logs, browser history and Referer headers.
+    const resetUrl = `${this.config.get('APP_URL', { infer: true })}/reinitialiser-mot-de-passe/${rawToken}`;
     await this.notifications.sendPasswordResetEmail(user.email, user.firstName, resetUrl, user.id);
 
     return { message };
@@ -203,6 +228,11 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: record.userId },
+      select: { email: true },
+    });
 
     await this.prisma.$transaction([
       // Mark reset token as used
@@ -222,12 +252,72 @@ export class AuthService {
       }),
     ]);
 
+    // SEC-009: unlock the account after a successful password reset so the user
+    // can log in immediately with the new password.
+    if (user) {
+      await this.clearFailedAttempts(user.email.toLowerCase());
+    }
+
     return { message: 'Mot de passe mis à jour. Veuillez vous reconnecter.' };
   }
 
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // SEC-009: Account lockout helpers
+  // ---------------------------------------------------------------------------
+
+  private lockoutKey(email: string): string {
+    return `auth:lockout:${email}`;
+  }
+
+  private attemptsKey(email: string): string {
+    return `auth:attempts:${email}`;
+  }
+
+  /**
+   * Throws if the account is currently locked out, including the remaining
+   * wait time. The message intentionally does not confirm whether the account
+   * exists (same wording regardless).
+   */
+  private async assertNotLocked(email: string): Promise<void> {
+    const expiryMs = await this.cache.get<number>(this.lockoutKey(email));
+    if (expiryMs !== undefined && expiryMs !== null) {
+      const remaining = Math.max(0, Math.ceil((expiryMs - Date.now()) / 60_000));
+      throw new UnauthorizedException(`Trop de tentatives. Réessayez dans ${remaining} minute(s).`);
+    }
+  }
+
+  /**
+   * Increments the failed-attempt counter. Locks the account after
+   * MAX_LOGIN_ATTEMPTS consecutive failures.
+   */
+  private async recordFailedAttempt(email: string): Promise<void> {
+    const key = this.attemptsKey(email);
+    const current = (await this.cache.get<number>(key)) ?? 0;
+    const next = current + 1;
+
+    if (next >= MAX_LOGIN_ATTEMPTS) {
+      // Lock the account and clear the attempt counter atomically
+      const expiresAt = Date.now() + LOCKOUT_TTL_MS;
+      await Promise.all([
+        this.cache.set(this.lockoutKey(email), expiresAt, LOCKOUT_TTL_MS),
+        this.cache.del(key),
+      ]);
+    } else {
+      await this.cache.set(key, next, LOCKOUT_TTL_MS);
+    }
+  }
+
+  /** Clears the failure counter after a successful login or password reset. */
+  private async clearFailedAttempts(email: string): Promise<void> {
+    await Promise.all([
+      this.cache.del(this.attemptsKey(email)),
+      this.cache.del(this.lockoutKey(email)),
+    ]);
+  }
 
   private async generateTokens(user: User): Promise<AuthTokens> {
     const payload: JwtPayload = { sub: user.id, email: user.email, role: user.role };
@@ -256,7 +346,8 @@ export class AuthService {
       create: { userId: user.id, tokenHash: hashToken(token), expiresAt },
     });
 
-    const verifyUrl = `${this.config.get('APP_URL', { infer: true })}/verify-email?token=${token}`;
+    // SEC-017: token is a path segment, not a query param
+    const verifyUrl = `${this.config.get('APP_URL', { infer: true })}/verify-email/${token}`;
     await this.notifications.sendVerificationEmail(user.email, user.firstName, verifyUrl, user.id);
   }
 }

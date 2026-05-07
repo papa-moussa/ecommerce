@@ -14,7 +14,7 @@ interface ErrorResponse {
   message: string | string[];
   error?: string;
   timestamp: string;
-  path: string;
+  path?: string; // SEC-015: omitted in production to reduce info-disclosure
   requestId?: string;
 }
 
@@ -28,9 +28,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request & { id?: string }>();
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     let message: string | string[] = 'Internal server error';
     let error: string | undefined;
@@ -59,12 +57,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       );
     }
 
+    // SEC-015: mask path in production — prevents route structure enumeration
+    const isDev = process.env['NODE_ENV'] !== 'production';
+
     const body: ErrorResponse = {
       statusCode: status,
       message,
-      error,
+      ...(error && { error }),
       timestamp: new Date().toISOString(),
-      path: request.url,
+      ...(isDev && { path: request.url }),
       requestId: request.id,
     };
 

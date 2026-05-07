@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -52,10 +52,11 @@ export class TotpService {
     const otpauthUrl = totp.toString();
     const qrDataUrl = await QRCode.toDataURL(otpauthUrl);
 
-    // Store secret (not yet enabled — user must confirm with a valid code)
+    // Store secret encrypted (not yet enabled — user must confirm with a valid code)
+    // SEC-013: encrypt before persisting so a DB dump cannot clone authenticators.
     await this.prisma.user.update({
       where: { id: userId },
-      data: { totpSecret: totp.secret.base32, totpEnabled: false },
+      data: { totpSecret: this.encryptSecret(totp.secret.base32), totpEnabled: false },
     });
 
     return { otpauthUrl, qrDataUrl, secret: totp.secret.base32 };
@@ -132,8 +133,13 @@ export class TotpService {
     }
   }
 
-  isCodeValid(secret: string, code: string): boolean {
-    const totp = new TOTP({ secret: Secret.fromBase32(secret), digits: 6, period: 30 });
+  isCodeValid(encryptedOrPlainSecret: string, code: string): boolean {
+    // SEC-013: decrypt if the stored value is in the encrypted `iv:enc:tag` format.
+    // Plaintext base32 strings (legacy/migration) contain no colons and are used as-is.
+    const plainSecret = encryptedOrPlainSecret.includes(':')
+      ? this.decryptSecret(encryptedOrPlainSecret)
+      : encryptedOrPlainSecret;
+    const totp = new TOTP({ secret: Secret.fromBase32(plainSecret), digits: 6, period: 30 });
     const delta = totp.validate({ token: code, window: 1 });
     return delta !== null;
   }
@@ -201,6 +207,37 @@ export class TotpService {
 
   // ---------------------------------------------------------------------------
   // Private
+
+  // ---------------------------------------------------------------------------
+  // AES-256-GCM helpers — SEC-013
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Encrypts a plaintext TOTP secret (base32) using AES-256-GCM.
+   * Output format: `<ivHex>:<ciphertextHex>:<authTagHex>`
+   */
+  private encryptSecret(plaintext: string): string {
+    const key = Buffer.from(this.config.get('APP_ENCRYPTION_KEY', { infer: true }), 'hex');
+    const iv = randomBytes(16);
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `${iv.toString('hex')}:${encrypted.toString('hex')}:${tag.toString('hex')}`;
+  }
+
+  /**
+   * Decrypts an AES-256-GCM encrypted TOTP secret.
+   * Throws if the auth tag is invalid (tamper detection).
+   */
+  private decryptSecret(ciphertext: string): string {
+    const key = Buffer.from(this.config.get('APP_ENCRYPTION_KEY', { infer: true }), 'hex');
+    const parts = ciphertext.split(':');
+    if (parts.length !== 3) throw new Error('Invalid encrypted secret format');
+    const [ivHex, encHex, tagHex] = parts as [string, string, string];
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    return decipher.update(Buffer.from(encHex, 'hex')).toString('utf8') + decipher.final('utf8');
+  }
 
   private async tryBackupCode(user: User, rawCode: string): Promise<boolean> {
     for (let i = 0; i < user.backupCodes.length; i++) {

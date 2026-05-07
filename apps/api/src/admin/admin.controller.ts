@@ -43,7 +43,8 @@ export class AdminController {
 
   @Get('metrics/timeseries')
   getMetricsTimeseries(
-    @Query('metric') metric: string = 'revenue',
+    // SEC-016: narrow types so ValidationPipe rejects anything not in the union
+    @Query('metric') metric: 'revenue' | 'orders' = 'revenue',
     @Query('period') period: '7d' | '30d' | '90d' = '30d',
   ) {
     return this.adminService.getMetricsTimeseries(metric, period);

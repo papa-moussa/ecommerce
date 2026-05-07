@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import type { Express } from 'express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
@@ -20,8 +21,49 @@ async function bootstrap(): Promise<void> {
 
   const config = app.get(ConfigService<AppConfig, true>);
 
+  // SEC-012: trust the first downstream reverse proxy (Caddy/Nginx) so that
+  // req.ip returns the real client IP from X-Forwarded-For, not the proxy IP.
+  // Value `1` = trust exactly one hop — prevents IP spoofing via XFF headers.
+  const expressApp = app.getHttpAdapter().getInstance() as Express;
+  expressApp.set('trust proxy', 1);
+
   app.use(cookieParser());
-  app.use(helmet());
+
+  // SEC-011: explicit Content Security Policy scoped to known third-party origins.
+  // Replaces the default Helmet CSP that is too permissive and doesn't allow
+  // Stripe, Cloudinary, Algolia or Sentry.
+  const algoliaAppId = config.get('ALGOLIA_APP_ID', { infer: true });
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", 'https://js.stripe.com'],
+          scriptSrcElem: ["'self'", 'https://js.stripe.com'],
+          frameSrc: ["'self'", 'https://js.stripe.com'],
+          connectSrc: [
+            "'self'",
+            'https://api.stripe.com',
+            ...(algoliaAppId
+              ? [`https://${algoliaAppId}-dsn.algolia.net`, `https://${algoliaAppId}.algolia.net`]
+              : []),
+            'https://o*.ingest.sentry.io',
+            'https://res.cloudinary.com',
+            'https://api.cloudinary.com',
+          ],
+          imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'https://stripe.com'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          fontSrc: ["'self'", 'data:'],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      hsts: { maxAge: 63072000, includeSubDomains: true, preload: true },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    }),
+  );
+
   app.enableCors({
     origin: config.get('CORS_ORIGIN', { infer: true }),
     credentials: true,

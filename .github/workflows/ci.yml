@@ -77,6 +77,10 @@ jobs:
       REDIS_URL: redis://localhost:6379
       JWT_ACCESS_SECRET: test_access_secret_at_least_32_characters_long
       JWT_REFRESH_SECRET: test_refresh_secret_at_least_32_characters_long
+      JWT_TEMP_SECRET: test_temp_secret_at_least_32_characters_long_xx
+      APP_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_tests_only
+      STRIPE_WEBHOOK_SECRET: whsec_test_placeholder_for_ci_tests_only
       NODE_ENV: test
 
     steps:
@@ -148,6 +152,47 @@ jobs:
           tags: ecommerce-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # SEC-014: dependency audit + container scanning on every CI run
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit npm dependencies (high + critical)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true # report but don't block — tracked via GitHub Security tab
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
 
   lighthouse:
     name: Lighthouse CI
