@@ -66,4 +66,12 @@ export class UsersService {
       select: USER_PUBLIC_SELECT,
     });
   }
+
+  async unsubscribe(email: string): Promise<{ success: boolean }> {
+    await this.prisma.user.updateMany({
+      where: { email },
+      data: { marketingOptIn: false },
+    });
+    return { success: true };
+  }
 }

@@ -12,7 +12,7 @@ import { type User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { type AppConfig } from '../config/configuration';
-import { MailService } from '../notifications/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { type PublicUser, UsersService } from '../users/users.service';
 
@@ -49,7 +49,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService<AppConfig, true>,
-    private readonly mail: MailService,
+    private readonly notifications: NotificationsService,
     private readonly totp: TotpService,
   ) {}
 
@@ -60,14 +60,18 @@ export class AuthService {
     // Send verification email (non-blocking — swallowed on error)
     void this.sendVerificationEmail(user as User);
 
+    // Send welcome email (non-blocking)
+    void this.notifications.sendWelcomeEmail(user.email, user.firstName, 'WELCOME10', user.id);
+
     return { user, tokens };
   }
 
   async login(
     dto: LoginDto,
   ): Promise<
-    | { user: PublicUser; tokens: AuthTokens; requires2FA?: never }
-    | { requires2FA: true; tempToken: string; user?: never; tokens?: never }
+    | { user: PublicUser; tokens: AuthTokens; requires2FA?: never; requires2FASetup?: never }
+    | { requires2FA: true; tempToken: string; role: string; user?: never; tokens?: never }
+    | { requires2FASetup: true; tempToken: string; role: string; user?: never; tokens?: never }
   > {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) throw new UnauthorizedException('Invalid credentials');
@@ -77,10 +81,14 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    // ADMIN with 2FA enabled → 2-step flow
-    if (user.role === 'ADMIN' && user.totpEnabled) {
+    if (user.role === 'ADMIN') {
       const tempToken = this.totp.issueTempToken(user);
-      return { requires2FA: true, tempToken };
+      if (user.totpEnabled) {
+        // Step-2: verify TOTP code
+        return { requires2FA: true, tempToken, role: user.role };
+      }
+      // ADMIN without TOTP configured → force setup before granting access
+      return { requires2FASetup: true, tempToken, role: user.role };
     }
 
     const { passwordHash: _ph, ...publicUser } = user;
@@ -177,10 +185,8 @@ export class AuthService {
       data: { userId: user.id, tokenHash, expiresAt },
     });
 
-    const appUrl = this.config.get('APP_URL', { infer: true });
-    const resetUrl = `${appUrl}/reinitialiser-mot-de-passe?token=${rawToken}`;
-
-    void this.mail.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+    const resetUrl = `${this.config.get('APP_URL', { infer: true })}/reset-password?token=${rawToken}`;
+    await this.notifications.sendPasswordResetEmail(user.email, user.firstName, resetUrl, user.id);
 
     return { message };
   }
@@ -237,18 +243,17 @@ export class AuthService {
   }
 
   private async sendVerificationEmail(user: User): Promise<void> {
-    const rawToken = generateToken();
-    const tokenHash = hashToken(rawToken);
+    const token = generateToken();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + EMAIL_VERIFY_TTL_HOURS);
 
-    await this.prisma.emailVerification.create({
-      data: { userId: user.id, tokenHash, expiresAt },
+    await this.prisma.emailVerification.upsert({
+      where: { userId: user.id },
+      update: { tokenHash: hashToken(token), expiresAt },
+      create: { userId: user.id, tokenHash: hashToken(token), expiresAt },
     });
 
-    const appUrl = this.config.get('APP_URL', { infer: true });
-    const verifyUrl = `${appUrl}/verify-email?token=${rawToken}`;
-
-    await this.mail.sendVerificationEmail(user.email, user.firstName, verifyUrl);
+    const verifyUrl = `${this.config.get('APP_URL', { infer: true })}/verify-email?token=${token}`;
+    await this.notifications.sendVerificationEmail(user.email, user.firstName, verifyUrl, user.id);
   }
 }

@@ -50,9 +50,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # TODO: plug your deploy target (SSH to VPS, Railway, Fly.io, Render…)
-      - name: Notify deployment
-        run: echo "Image pushed — trigger your deploy target here."
+      - name: Deploy to staging VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest
+            docker compose -f /opt/maison-parfum/docker-compose.staging.yml up -d --no-build api
+            docker image prune -f
 
   # ----- PRODUCTION (git tags) -----
   deploy-production:
@@ -93,5 +100,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Notify deployment
-        run: echo "Production image pushed — trigger your deploy target here."
+      - name: Deploy to production VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker compose -f /opt/maison-parfum/docker-compose.prod.yml up -d --no-build api
+            docker image prune -f

@@ -69,6 +69,15 @@ export class AdminController {
   // Products
   // ---------------------------------------------------------------------------
 
+  @Get('products')
+  listProducts(
+    @Query('q') q?: string,
+    @Query('category') category?: string,
+    @Query('page') page?: string,
+  ) {
+    return this.adminService.listProducts({ q, category, page: page ? parseInt(page, 10) : 1 });
+  }
+
   @Post('products')
   @AuditResource({ resource: 'product', action: 'product.create' })
   createProduct(@Body() dto: CreateProductDto, @CurrentUser() user: { id: string }) {
@@ -132,6 +141,11 @@ export class AdminController {
   @Get('orders/:id')
   getOrder(@Param('id') id: string) {
     return this.adminService.getOrder(id);
+  }
+
+  @Get('email-logs')
+  listEmailLogs(@Query() query: any) {
+    return this.adminService.listEmailLogs(query);
   }
 
   @Patch('orders/:id/status')

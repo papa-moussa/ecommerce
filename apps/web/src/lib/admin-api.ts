@@ -1,30 +1,24 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+import type { PromoCode } from '@ecommerce/shared-types';
+
+import { authenticatedFetch } from './api';
 
 async function adminFetch<T>(
   path: string,
   init?: Omit<RequestInit, 'json'> & { json?: unknown },
 ): Promise<T> {
   const { json, ...fetchInit } = init ?? {};
-  const res = await fetch(`${BASE}${path}`, {
+  return authenticatedFetch<T>(path, {
     ...fetchInit,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...fetchInit.headers,
-    },
     body: json !== undefined ? JSON.stringify(json) : undefined,
   });
-
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error((json as { message?: string }).message ?? `HTTP ${res.status}`);
-  }
-
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
 }
 
 export type Period = '7d' | '30d' | '90d';
+
+export interface Category {
+  id: string;
+  name: string;
+}
 
 export interface MetricsOverview {
   totalRevenueCents: number;
@@ -71,8 +65,17 @@ export const adminApi = {
       adminFetch(`/admin/products/${id}/images/${imageId}`, { method: 'DELETE' }),
     adjustStock: (id: string, json: unknown) =>
       adminFetch(`/admin/products/${id}/stock`, { method: 'POST', json }),
-    signUpload: (folder: string) =>
-      adminFetch('/admin/uploads/sign', { method: 'POST', json: { folder } }),
+  },
+
+  uploads: {
+    sign: (folder: string) =>
+      adminFetch<{
+        signature: string;
+        timestamp: number;
+        apiKey: string;
+        cloudName: string;
+        folder: string;
+      }>('/admin/uploads/sign', { method: 'POST', json: { folder } }),
   },
 
   orders: {
@@ -119,5 +122,36 @@ export const adminApi = {
         `/admin/audit-log${qs}`,
       );
     },
+  },
+
+  emails: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? `?${new URLSearchParams(params)}` : '';
+      return adminFetch<{ items: unknown[]; total: number; page: number; pages: number }>(
+        `/admin/email-logs${qs}`,
+      );
+    },
+  },
+
+  promoCodes: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? `?${new URLSearchParams(params)}` : '';
+      return adminFetch<{ items: PromoCode[]; total: number; page: number; pages: number }>(
+        `/admin/promo-codes${qs}`,
+      );
+    },
+    get: (id: string) => adminFetch<PromoCode>(`/admin/promo-codes/${id}`),
+    create: (json: unknown) => adminFetch('/admin/promo-codes', { method: 'POST', json }),
+    update: (id: string, json: unknown) =>
+      adminFetch(`/admin/promo-codes/${id}`, { method: 'PATCH', json }),
+    delete: (id: string) => adminFetch(`/admin/promo-codes/${id}`, { method: 'DELETE' }),
+  },
+
+  categories: {
+    list: () => adminFetch<Category[]>('/categories'),
+    create: (json: unknown) => adminFetch('/admin/categories', { method: 'POST', json }),
+    update: (id: string, json: unknown) =>
+      adminFetch(`/admin/categories/${id}`, { method: 'PUT', json }),
+    delete: (id: string) => adminFetch(`/admin/categories/${id}`, { method: 'DELETE' }),
   },
 };

@@ -11,4 +11,8 @@ export class StockAdjustmentDto {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @IsString()
+  @IsOptional()
+  variantId?: string;
 }

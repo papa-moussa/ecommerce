@@ -65,20 +65,25 @@ export class ReviewsService {
     const ratingAgg = await this.prisma.review.aggregate({
       where: { productId, isApproved: true },
       _avg: { rating: true },
-      _count: true,
     });
 
-    return { items, total, page, pages: Math.ceil(total / take), avgRating: ratingAgg._avg.rating };
+    return {
+      items,
+      total,
+      page,
+      pages: Math.ceil(total / take),
+      avgRating: ratingAgg._avg.rating || 0,
+    };
   }
 
   // Admin moderation
-  async listPendingReviews(page = 1) {
+  // Admin moderation - Show all reviews
+  async listAllReviews(page = 1) {
     const take = 20;
     const skip = (page - 1) * take;
 
     const [items, total] = await Promise.all([
       this.prisma.review.findMany({
-        where: { isApproved: false },
         skip,
         take,
         orderBy: { createdAt: 'desc' },
@@ -87,7 +92,7 @@ export class ReviewsService {
           product: { select: { id: true, name: true } },
         },
       }),
-      this.prisma.review.count({ where: { isApproved: false } }),
+      this.prisma.review.count(),
     ]);
 
     return { items, total, page, pages: Math.ceil(total / take) };

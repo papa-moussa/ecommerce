@@ -2,6 +2,7 @@ const path = require('path');
 
 module.exports = {
   root: true,
+  ignorePatterns: ['next-env.d.ts', '.next/**'],
   extends: [require.resolve('@ecommerce/config-eslint/next')],
   parserOptions: {
     tsconfigRootDir: __dirname,

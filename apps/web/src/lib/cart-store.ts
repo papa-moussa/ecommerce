@@ -10,6 +10,7 @@ export interface CartItem {
   unitPriceCents: number;
   sizeMl?: number;
   quantity: number;
+  stock: number;
 }
 
 interface CartStore {
@@ -20,6 +21,7 @@ interface CartStore {
   addItem: (item: Omit<CartItem, 'quantity'> & { quantity?: number }) => void;
   removeItem: (productId: string, variantId?: string) => void;
   updateQuantity: (productId: string, variantId: string | undefined, quantity: number) => void;
+  setItems: (items: CartItem[]) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
@@ -47,14 +49,17 @@ export const useCartStore = create<CartStore>()(
             return {
               items: state.items.map((i) =>
                 sameItem(i, item.productId, item.variantId)
-                  ? { ...i, quantity: i.quantity + (item.quantity ?? 1) }
+                  ? { ...i, quantity: Math.min(i.stock, i.quantity + (item.quantity ?? 1)) }
                   : i,
               ),
               isOpen: true,
             };
           }
           return {
-            items: [...state.items, { ...item, quantity: item.quantity ?? 1 }],
+            items: [
+              ...state.items,
+              { ...item, quantity: Math.min(item.stock, item.quantity ?? 1) } as CartItem,
+            ],
             isOpen: true,
           };
         });
@@ -73,10 +78,12 @@ export const useCartStore = create<CartStore>()(
         }
         set((state) => ({
           items: state.items.map((i) =>
-            sameItem(i, productId, variantId) ? { ...i, quantity } : i,
+            sameItem(i, productId, variantId) ? { ...i, quantity: Math.min(i.stock, quantity) } : i,
           ),
         }));
       },
+
+      setItems: (items) => set({ items }),
 
       clearCart: () => set({ items: [] }),
       openCart: () => set({ isOpen: true }),

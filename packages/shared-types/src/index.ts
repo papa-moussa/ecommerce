@@ -68,6 +68,10 @@ export interface ProductCard {
   isFeatured: boolean;
   images: ProductCardImage[];
   category: CategorySummary;
+  variants: ProductVariant[];
+  sizeMl: number | null;
+  concentration: string | null;
+  family: string | null;
 }
 
 export interface ProductDetail extends Omit<ProductCard, 'images'> {
@@ -81,3 +85,5 @@ export interface ProductDetail extends Omit<ProductCard, 'images'> {
   images: ProductDetailImage[];
   variants: ProductVariant[];
 }
+
+export * from './promo-codes';

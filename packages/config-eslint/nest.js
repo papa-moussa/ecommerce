@@ -1,6 +1,7 @@
 /** @type {import("eslint").Linter.Config} */
 module.exports = {
   extends: ['./base.js'],
+  plugins: ['import'],
   env: {
     node: true,
     jest: true,

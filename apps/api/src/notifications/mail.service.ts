@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createTransport, type Transporter } from 'nodemailer';
+import { Resend } from 'resend';
 
 import { type AppConfig } from '../config/configuration';
 
@@ -15,37 +16,54 @@ interface MailOptions {
 export class MailService implements OnModuleInit {
   private readonly logger = new Logger(MailService.name);
   private transporter!: Transporter;
+  private resend: Resend | null = null;
   private from!: string;
 
   constructor(private readonly config: ConfigService<AppConfig, true>) {}
 
   onModuleInit(): void {
     this.from = this.config.get('SMTP_FROM', { infer: true });
+    const resendKey = this.config.get('RESEND_API_KEY', { infer: true });
 
-    this.transporter = createTransport({
-      host: this.config.get('SMTP_HOST', { infer: true }),
-      port: this.config.get('SMTP_PORT', { infer: true }),
-      secure: this.config.get('SMTP_SECURE', { infer: true }),
-      auth: {
-        user: this.config.get('SMTP_USER', { infer: true }) || undefined,
-        pass: this.config.get('SMTP_PASS', { infer: true }) || undefined,
-      },
-    });
+    if (resendKey) {
+      this.resend = new Resend(resendKey);
+      this.logger.log('Resend email provider initialized');
+    } else {
+      this.logger.warn('RESEND_API_KEY missing, falling back to SMTP (Nodemailer)');
+      this.transporter = createTransport({
+        host: this.config.get('SMTP_HOST', { infer: true }),
+        port: this.config.get('SMTP_PORT', { infer: true }),
+        secure: this.config.get('SMTP_SECURE', { infer: true }),
+        auth: {
+          user: this.config.get('SMTP_USER', { infer: true }) || undefined,
+          pass: this.config.get('SMTP_PASS', { infer: true }) || undefined,
+        },
+      });
+    }
   }
 
   async sendMail(opts: MailOptions): Promise<void> {
     try {
-      await this.transporter.sendMail({
-        from: this.from,
-        to: opts.to,
-        subject: opts.subject,
-        html: opts.html,
-        text: opts.text,
-      });
+      if (this.resend) {
+        await this.resend.emails.send({
+          from: this.from,
+          to: opts.to,
+          subject: opts.subject,
+          html: opts.html,
+          text: opts.text,
+        });
+      } else {
+        await this.transporter.sendMail({
+          from: this.from,
+          to: opts.to,
+          subject: opts.subject,
+          html: opts.html,
+          text: opts.text,
+        });
+      }
       this.logger.log(`Email sent to ${opts.to} — "${opts.subject}"`);
     } catch (err) {
       this.logger.error(`Failed to send email to ${opts.to}`, err);
-      // Swallow error — do not let email failure break the main flow
     }
   }
 
@@ -114,6 +132,55 @@ export class MailService implements OnModuleInit {
           <h2 style="color:#1a1a1a;font-size:20px;margin-bottom:16px">${subject}</h2>
           <p style="color:#555;line-height:1.6;margin-bottom:24px">Bonjour ${firstName},<br><br>${body}</p>
           <p style="color:#999;font-size:12px;margin-top:32px">
+            Maison Parfum · Une sélection rigoureuse de parfums de niche
+          </p>
+        </div>
+      `,
+    });
+  }
+
+  async sendOrderConfirmationEmail(
+    to: string,
+    firstName: string,
+    orderId: string,
+    items: Array<{ name: string; variantLabel?: string | null; qty: number; priceCents: number }>,
+    totalCents: number,
+    currency: string,
+  ): Promise<void> {
+    const shortId = orderId.slice(-8).toUpperCase();
+    const fmt = (cents: number) =>
+      new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(cents / 100);
+
+    const itemsHtml = items
+      .map(
+        (i) => `
+        <tr>
+          <td style="padding:8px 0;color:#333;font-size:14px">
+            ${i.name}${i.variantLabel ? ` <span style="color:#999">(${i.variantLabel})</span>` : ''} × ${i.qty}
+          </td>
+          <td style="padding:8px 0;color:#333;font-size:14px;text-align:right">${fmt(i.priceCents * i.qty)}</td>
+        </tr>`,
+      )
+      .join('');
+
+    await this.sendMail({
+      to,
+      subject: `Confirmation de votre commande #${shortId} — Maison Parfum`,
+      text: `Bonjour ${firstName},\n\nMerci pour votre commande #${shortId}.\nTotal : ${fmt(totalCents)}\n\nNous vous tiendrons informé(e) de l'expédition.`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 0">
+          <h2 style="color:#1a1a1a;font-size:22px;margin-bottom:8px">Merci, ${firstName}&nbsp;!</h2>
+          <p style="color:#555;font-size:14px;margin-bottom:24px">
+            Votre commande <strong>#${shortId}</strong> a bien été reçue et est en cours de traitement.
+          </p>
+          <table style="width:100%;border-collapse:collapse;border-top:1px solid #eee;margin-bottom:16px">
+            ${itemsHtml}
+            <tr style="border-top:1px solid #eee">
+              <td style="padding:12px 0;font-weight:700;font-size:15px;color:#1a1a1a">Total</td>
+              <td style="padding:12px 0;font-weight:700;font-size:15px;color:#1a1a1a;text-align:right">${fmt(totalCents)}</td>
+            </tr>
+          </table>
+          <p style="color:#999;font-size:12px;margin-top:24px">
             Maison Parfum · Une sélection rigoureuse de parfums de niche
           </p>
         </div>

@@ -52,9 +52,11 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    if (result.requires2FA === true) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return { requires2FA: true, tempToken: (result as any).tempToken as string };
+    if ('requires2FA' in result && result.requires2FA === true) {
+      return { requires2FA: true, tempToken: result.tempToken, role: result.role };
+    }
+    if ('requires2FASetup' in result && result.requires2FASetup === true) {
+      return { requires2FASetup: true, tempToken: result.tempToken, role: result.role };
     }
     const tokens = result.tokens!;
     this.setRefreshCookie(res, tokens.refreshToken);
@@ -150,15 +152,44 @@ export class AuthController {
     });
   }
 
+  // Forced setup endpoints — authenticate via temp token (no session required)
+
+  @Public()
+  @Post('2fa/setup-init')
+  @HttpCode(HttpStatus.OK)
+  twoFaSetupInit(@Body() body: { tempToken: string }) {
+    return this.totpService.setupWithTempToken(body.tempToken);
+  }
+
+  @Public()
+  @Post('2fa/finish-setup')
+  @HttpCode(HttpStatus.OK)
+  async twoFaFinishSetup(
+    @Body() body: { tempToken: string; code: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { tokens, backupCodes } = await this.totpService.enableWithTempToken(
+      body.tempToken,
+      body.code,
+    );
+    this.setRefreshCookie(res, tokens.refreshToken);
+    return { accessToken: tokens.accessToken, backupCodes };
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
 
   private setRefreshCookie(res: Response, token: string) {
+    // COOKIE_SECURE=false permet de désactiver le flag Secure quand le site
+    // tourne en HTTP (sans HTTPS). Par défaut : true en production.
+    const secureCookie =
+      process.env['NODE_ENV'] === 'production' && process.env['COOKIE_SECURE'] !== 'false';
+
     res.cookie(REFRESH_COOKIE, token, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: process.env['NODE_ENV'] === 'production',
+      secure: secureCookie,
       maxAge: COOKIE_TTL_MS,
       path: '/',
     });

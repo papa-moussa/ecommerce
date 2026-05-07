@@ -8,8 +8,11 @@ import { AdminModule } from './admin/admin.module';
 import { AuthModule } from './auth/auth.module';
 import { CartModule } from './cart/cart.module';
 import { CategoriesModule } from './categories/categories.module';
+import { ChatbaseModule } from './chatbase/chatbase.module';
+import { CacheModule } from './common/cache/cache.module';
 import { CustomThrottlerGuard } from './common/guards/throttler.guard';
 import { buildLoggerOptions } from './common/logger/logger.config';
+import { ThrottlerStorageRedisService } from './common/services/throttler-storage-redis.service';
 import { type AppConfig, configuration } from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { HealthModule } from './health/health.module';
@@ -19,7 +22,11 @@ import { OrdersModule } from './orders/orders.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProductsModule } from './products/products.module';
+import { PromoCodesModule } from './promo-codes/promo-codes.module';
+import { QuizModule } from './quiz/quiz.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { SearchModule } from './search/search.module';
+import { ShippingModule } from './shipping/shipping.module';
 import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
 import { WishlistModule } from './wishlist/wishlist.module';
@@ -32,9 +39,12 @@ import { WishlistModule } from './wishlist/wishlist.module';
       load: [configuration],
       validate: validateEnv,
     }),
-    ThrottlerModule.forRoot({
-      throttlers: [{ name: 'global', ttl: 60_000, limit: 60 }],
-      // TODO: swap storage for ThrottlerStorageRedisService in production
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<AppConfig, true>) => ({
+        throttlers: [{ name: 'global', ttl: 60_000, limit: 60 }],
+        storage: new ThrottlerStorageRedisService(config.get('REDIS_URL', { infer: true })),
+      }),
     }),
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -66,9 +76,18 @@ import { WishlistModule } from './wishlist/wishlist.module';
           CLOUDINARY_CLOUD_NAME: config.get('CLOUDINARY_CLOUD_NAME', { infer: true }),
           CLOUDINARY_API_KEY: config.get('CLOUDINARY_API_KEY', { infer: true }),
           CLOUDINARY_API_SECRET: config.get('CLOUDINARY_API_SECRET', { infer: true }),
+          RESEND_API_KEY: config.get('RESEND_API_KEY', { infer: true }),
+          ALGOLIA_APP_ID: config.get('ALGOLIA_APP_ID', { infer: true }),
+          ALGOLIA_API_KEY: config.get('ALGOLIA_API_KEY', { infer: true }),
+          ALGOLIA_SEARCH_KEY: config.get('ALGOLIA_SEARCH_KEY', { infer: true }),
+          TWILIO_ACCOUNT_SID: config.get('TWILIO_ACCOUNT_SID', { infer: true }),
+          TWILIO_AUTH_TOKEN: config.get('TWILIO_AUTH_TOKEN', { infer: true }),
+          TWILIO_WHATSAPP_FROM: config.get('TWILIO_WHATSAPP_FROM', { infer: true }),
+          CHATBASE_SYNC_SECRET: config.get('CHATBASE_SYNC_SECRET', { infer: true }),
         }),
     }),
     PrismaModule,
+    SearchModule,
     HealthModule,
     NotificationsModule,
     UsersModule,
@@ -83,6 +102,11 @@ import { WishlistModule } from './wishlist/wishlist.module';
     AdminModule,
     ReviewsModule,
     WishlistModule,
+    PromoCodesModule,
+    QuizModule,
+    ShippingModule,
+    CacheModule,
+    ChatbaseModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })

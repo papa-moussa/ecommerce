@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { useCartStore } from '@/lib/cart-store';
-import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/currency';
 
 const BACKDROP_VARIANTS = {
   hidden: { opacity: 0 },
@@ -23,6 +23,7 @@ const TRANSITION = { type: 'tween', duration: 0.28, ease: [0.32, 0.72, 0, 1] } a
 export function CartDrawer() {
   const pathname = usePathname();
   const { items, isOpen, closeCart, removeItem, updateQuantity, subtotalCents } = useCartStore();
+  const { format } = useCurrency();
 
   if (pathname.startsWith('/admin')) return null;
 
@@ -136,7 +137,7 @@ export function CartDrawer() {
                           </div>
 
                           <p className="text-sm font-medium text-brand-ink">
-                            {formatPrice(item.unitPriceCents * item.quantity)}
+                            {format(item.unitPriceCents * item.quantity)}
                           </p>
 
                           <button
@@ -159,7 +160,7 @@ export function CartDrawer() {
               <div className="space-y-4 border-t border-brand-ink/10 px-6 py-5">
                 <div className="flex justify-between text-sm">
                   <span className="text-brand-ink/60">Sous-total</span>
-                  <span className="font-medium text-brand-ink">{formatPrice(subtotalCents())}</span>
+                  <span className="font-medium text-brand-ink">{format(subtotalCents())}</span>
                 </div>
                 <p className="text-xs text-brand-ink/40">
                   Livraison calculée au moment du paiement.

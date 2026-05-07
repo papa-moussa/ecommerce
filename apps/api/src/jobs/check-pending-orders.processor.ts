@@ -30,6 +30,7 @@ export class OrdersQueueProcessor extends WorkerHost {
     const staleOrders = await this.prisma.order.findMany({
       where: {
         status: 'PENDING',
+        paymentMethod: 'ONLINE',
         createdAt: { lt: cutoff },
       },
       select: {

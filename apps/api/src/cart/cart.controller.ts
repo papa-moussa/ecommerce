@@ -21,4 +21,10 @@ export class CartController {
   validate(@CurrentUser() user: User) {
     return this.cartService.validate(user.id, undefined);
   }
+
+  @Post('recover')
+  @HttpCode(HttpStatus.OK)
+  recover(@CurrentUser() user: User, @Body('token') token: string) {
+    return this.cartService.recover(user.id, token);
+  }
 }

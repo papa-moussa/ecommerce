@@ -10,6 +10,7 @@
     "emitDecoratorMetadata": true,
     "noUncheckedIndexedAccess": false,
     "outDir": "./dist",
+    "outDir": "./dist",
     "rootDir": "./src"
   }
 }

@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, Suspense, useState } from 'react';
 
 import { clientApi } from '@/lib/api';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
-export default function ResetPasswordPage(): JSX.Element {
+function ResetPasswordPageContent(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token') ?? '';
@@ -125,5 +125,13 @@ export default function ResetPasswordPage(): JSX.Element {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }

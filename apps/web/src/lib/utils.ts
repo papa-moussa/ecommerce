@@ -1,8 +1,16 @@
-export function formatPrice(cents: number, currency = 'EUR'): string {
-  return new Intl.NumberFormat('fr-FR', {
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatPrice(value: number, currency = 'XOF'): string {
+  const isXof = currency === 'XOF';
+  return new Intl.NumberFormat(isXof ? 'fr-SN' : 'fr-FR', {
     style: 'currency',
     currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+    minimumFractionDigits: isXof ? 0 : 2,
+    maximumFractionDigits: isXof ? 0 : 2,
+  }).format(isXof ? value : value / 100);
 }

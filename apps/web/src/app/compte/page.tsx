@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { clientApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/currency';
 
 interface Order {
   id: string;
@@ -39,6 +39,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function ComptePage(): JSX.Element | null {
   const { user, isLoading, logout } = useAuth();
+  const { format } = useCurrency();
   const router = useRouter();
   const [resendStatus, setResendStatus] = useState<'idle' | 'sent' | 'error'>('idle');
   const [orders, setOrders] = useState<Order[]>([]);
@@ -149,7 +150,7 @@ export default function ComptePage(): JSX.Element | null {
             {orders.map((order) => (
               <li key={order.id}>
                 <Link
-                  href={`/confirmation/${order.id}`}
+                  href={`/compte/commandes/${order.id}`}
                   className="block rounded-lg border border-brand-ink/10 p-4 transition-colors hover:border-brand-gold"
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -179,7 +180,7 @@ export default function ComptePage(): JSX.Element | null {
                         {STATUS_LABEL[order.status] ?? order.status}
                       </span>
                       <p className="mt-2 text-sm font-medium text-brand-ink">
-                        {formatPrice(order.totalCents, order.currency)}
+                        {format(order.totalCents)}
                       </p>
                     </div>
                   </div>

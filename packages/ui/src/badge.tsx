@@ -4,7 +4,7 @@ import { cn } from './cn';
 
 type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'gold' | 'outline';
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+export interface BadgeProps extends React.ComponentPropsWithoutRef<'span'> {
   variant?: BadgeVariant;
 }
 
@@ -17,12 +17,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   outline: 'border border-brand-ink/20 text-brand-ink/70',
 };
 
-export function Badge({
-  variant = 'default',
-  className,
-  children,
-  ...props
-}: BadgeProps): JSX.Element {
+export function Badge({ variant = 'default', className, children, ...props }: BadgeProps) {
   return (
     <span
       className={cn(

@@ -1,3 +1,4 @@
+import type { ProductDetail } from '@ecommerce/shared-types';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -5,18 +6,18 @@ import { notFound } from 'next/navigation';
 import { JsonLd } from '@/components/json-ld';
 import { WishlistButton } from '@/components/wishlist-button';
 import { serverApi } from '@/lib/api';
-import { formatPrice } from '@/lib/utils';
 
 import { ProductCard } from '../../_components/product-card';
-import { AddToCartButton } from '../_components/add-to-cart-button';
 import { OlfactoryNotes } from '../_components/olfactory-notes';
+import { ProductActions } from '../_components/product-actions';
 import { ProductGallery } from '../_components/product-gallery';
+import { ProductReviews } from '../_components/product-reviews';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
@@ -29,10 +30,11 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3002';
 
   try {
-    const p = await serverApi.products.bySlug(params.slug);
+    const p = await serverApi.products.bySlug(slug);
     const title = `${p.brand} ${p.name}`;
     const canonicalUrl = `${siteUrl}/produits/${p.slug}`;
     const ogImage = p.images.find((i) => i.isMain)?.url ?? p.images[0]?.url;
@@ -40,7 +42,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title,
       description: p.description,
-      alternates: { canonical: canonicalUrl },
+      alternates: {
+        canonical: canonicalUrl,
+        languages: {
+          'fr-FR': canonicalUrl,
+          'x-default': canonicalUrl,
+        },
+      },
       openGraph: {
         title,
         description: p.description,
@@ -69,8 +77,29 @@ const GENDER_LABEL: Record<string, string> = {
   UNISEXE: 'Unisexe',
 };
 
+const CONCENTRATION_LABEL: Record<string, string> = {
+  EAU_FRAICHE: 'Eau Fraîche',
+  EAU_DE_COLOGNE: 'Eau de Cologne',
+  EAU_DE_TOILETTE: 'Eau de Toilette',
+  EAU_DE_PARFUM: 'Eau de Parfum',
+  PARFUM: 'Parfum',
+  EXTRAIT_DE_PARFUM: 'Extrait de Parfum',
+};
+
+const FAMILY_LABEL: Record<string, string> = {
+  HESPERIDE: 'Hespéridé',
+  FLORAL: 'Floral',
+  BOISE: 'Boisé',
+  ORIENTAL: 'Oriental',
+  AMBRE: 'Ambré',
+  FOUGERE: 'Fougère',
+  CHYPRE: 'Chypré',
+  CUIR: 'Cuir',
+};
+
 export default async function ProductPage({ params }: Props): Promise<JSX.Element> {
-  const product = await serverApi.products.bySlug(params.slug).catch(() => null);
+  const { slug } = await params;
+  const product = await serverApi.products.bySlug(slug).catch(() => null);
   if (!product) notFound();
 
   const related = await serverApi.products.related(product.id).catch(() => []);
@@ -101,7 +130,10 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
       '@type': 'Offer',
       url: productUrl,
       priceCurrency: product.currency,
-      price: (product.priceCents / 100).toFixed(2),
+      price:
+        product.currency === 'XOF'
+          ? product.priceCents.toString()
+          : (product.priceCents / 100).toFixed(2),
       availability,
       seller: { '@type': 'Organization', name: 'Maison Parfum' },
     },
@@ -164,7 +196,14 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
                 <h1 className="mt-1 font-serif text-4xl text-brand-ink">{product.name}</h1>
                 <p className="mt-1 text-sm text-brand-ink/40">
                   {GENDER_LABEL[product.gender] ?? product.gender}
+                  {product.concentration && ` · ${CONCENTRATION_LABEL[product.concentration]}`}
+                  {product.family && ` · ${FAMILY_LABEL[product.family]}`}
                 </p>
+                {product.sizeMl && product.variants.length === 0 && (
+                  <p className="mt-2 text-sm font-medium text-brand-ink/60">
+                    Contenance : {product.sizeMl} ml
+                  </p>
+                )}
               </div>
               <WishlistButton
                 productId={product.id}
@@ -173,42 +212,7 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
             </div>
           </div>
 
-          <p className="text-2xl font-medium text-brand-ink">
-            {formatPrice(product.priceCents, product.currency)}
-          </p>
-
-          {product.variants.length > 0 && (
-            <div>
-              <p className="mb-2 text-xs uppercase tracking-widest text-brand-ink/40">Contenance</p>
-              <div className="flex flex-wrap gap-2">
-                {product.variants.map((v) => (
-                  <button
-                    key={v.id}
-                    disabled={v.stock === 0}
-                    className="rounded-full border border-brand-ink/20 px-4 py-1.5 text-sm transition-colors hover:border-brand-gold hover:text-brand-gold disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {v.sizeMl} ml — {formatPrice(v.priceCents)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {product.stockStatus === 'OUT_OF_STOCK' && (
-            <p className="text-sm font-medium text-red-600">Ce produit est épuisé.</p>
-          )}
-          {product.stockStatus === 'LOW_STOCK' && (
-            <p className="text-sm font-medium text-amber-600">Plus que quelques pièces.</p>
-          )}
-
-          <AddToCartButton
-            productId={product.id}
-            name={product.name}
-            brand={product.brand}
-            imageUrl={mainImage?.url}
-            unitPriceCents={product.priceCents}
-            stockStatus={product.stockStatus}
-          />
+          <ProductActions product={product as unknown as ProductDetail} />
 
           <div className="border-t border-brand-ink/10 pt-6">
             <p className="leading-relaxed text-brand-ink/70">{product.description}</p>
@@ -224,6 +228,8 @@ export default async function ProductPage({ params }: Props): Promise<JSX.Elemen
           baseNotes={product.baseNotes}
           storyTelling={product.storyTelling}
         />
+
+        <ProductReviews productId={product.id} />
       </div>
 
       {related.length > 0 && (

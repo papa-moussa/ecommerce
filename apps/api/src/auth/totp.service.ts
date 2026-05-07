@@ -131,6 +131,28 @@ export class TotpService {
   }
 
   // ---------------------------------------------------------------------------
+  // Forced setup flow — used when ADMIN has no TOTP yet (temp token auth)
+  // ---------------------------------------------------------------------------
+
+  async setupWithTempToken(
+    tempToken: string,
+  ): Promise<{ otpauthUrl: string; qrDataUrl: string; secret: string }> {
+    const payload = this.verifyTempToken(tempToken);
+    return this.setup(payload.sub);
+  }
+
+  async enableWithTempToken(
+    tempToken: string,
+    code: string,
+  ): Promise<{ backupCodes: string[]; tokens: AuthTokens }> {
+    const payload = this.verifyTempToken(tempToken);
+    const result = await this.enable(payload.sub, code);
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: payload.sub } });
+    const tokens = await this.generateTokens(user);
+    return { ...result, tokens };
+  }
+
+  // ---------------------------------------------------------------------------
   // Issue a short-lived temp token (for 2-step login)
   // ---------------------------------------------------------------------------
 
@@ -145,8 +167,21 @@ export class TotpService {
   }
 
   // ---------------------------------------------------------------------------
-  // Private
+  // Private helpers
   // ---------------------------------------------------------------------------
+
+  private verifyTempToken(tempToken: string): TempTokenPayload {
+    try {
+      return this.jwt.verify<TempTokenPayload>(tempToken, {
+        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+      });
+    } catch {
+      throw new UnauthorizedException('Temp token invalide ou expiré.');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private
 
   private async tryBackupCode(user: User, rawCode: string): Promise<boolean> {
     for (let i = 0; i < user.backupCodes.length; i++) {

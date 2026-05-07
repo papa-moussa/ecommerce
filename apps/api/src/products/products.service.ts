@@ -17,11 +17,18 @@ const PRODUCT_CARD_SELECT = {
   stockStatus: true,
   isFeatured: true,
   gender: true,
+  sizeMl: true,
+  concentration: true,
+  family: true,
   category: { select: { id: true, slug: true, name: true } },
   images: {
-    where: { isMain: true },
     select: { url: true, alt: true },
+    orderBy: { isMain: 'desc' as const },
     take: 1,
+  },
+  variants: {
+    select: { id: true, sizeMl: true, priceCents: true, stock: true },
+    orderBy: { sizeMl: 'asc' as const },
   },
 } satisfies Prisma.ProductSelect;
 

@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { type Cart, type CartItem, type Product, type ProductVariant } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -33,7 +34,10 @@ type CartWithItems = Cart & {
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwt: JwtService,
+  ) {}
 
   async getOrCreate(userId?: string, sessionId?: string): Promise<CartWithItems> {
     const where = userId ? { userId } : { sessionId: sessionId ?? '' };
@@ -103,7 +107,7 @@ export class CartService {
 
     return this.prisma.cart.update({
       where: { id: cart.id },
-      data: { lastActivityAt: new Date() },
+      data: { lastActivityAt: new Date(), reminderStage: 0 },
     });
   }
 
@@ -120,7 +124,7 @@ export class CartService {
       const product = item.product;
       const variant = item.variant;
 
-      const unitPriceCents = variant ? variant.priceCents : product.priceCents;
+      const unitPriceCents = variant?.priceCents ?? product.priceCents;
       const stockAvailable = variant ? variant.stock : product.stock;
       const variantLabel = variant ? `${variant.sizeMl}ml` : null;
       const available = product.isActive && stockAvailable >= item.quantity;
@@ -150,5 +154,48 @@ export class CartService {
       isValid: invalidItems.length === 0,
       invalidItems,
     };
+  }
+
+  async recover(userId: string, token: string) {
+    try {
+      const payload = this.jwt.verify(token);
+      const cartId = payload.cartId;
+
+      if (!cartId) throw new BadRequestException('Token invalide');
+
+      // Find the source cart
+      const sourceCart = await this.prisma.cart.findUnique({
+        where: { id: cartId },
+        include: { items: true },
+      });
+
+      if (!sourceCart) throw new BadRequestException('Panier introuvable');
+
+      // Merge items into user's current cart
+      const targetCart = await this.getOrCreate(userId);
+
+      for (const item of sourceCart.items) {
+        await this.prisma.cartItem.upsert({
+          where: {
+            cartId_productId_variantId: {
+              cartId: targetCart.id,
+              productId: item.productId,
+              variantId: item.variantId ?? 'default', // Using a string fallback because of @unique constraints usually needing non-null values if in compound key, or handling null specifically
+            },
+          },
+          update: { quantity: { increment: item.quantity } },
+          create: {
+            cartId: targetCart.id,
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity,
+          },
+        });
+      }
+
+      return this.validate(userId, undefined);
+    } catch (e) {
+      throw new BadRequestException('Échec de la récupération du panier');
+    }
   }
 }

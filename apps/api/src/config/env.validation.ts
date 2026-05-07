@@ -32,6 +32,7 @@ export const envSchema = z.object({
   SMTP_USER: z.string().optional().default(''),
   SMTP_PASS: z.string().optional().default(''),
   SMTP_FROM: z.string().email().default('noreply@maisonparfum.local'),
+  RESEND_API_KEY: z.string().optional().default(''),
 
   APP_URL: z.string().url().default('http://localhost:3002'),
 
@@ -45,6 +46,19 @@ export const envSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().default(''),
   CLOUDINARY_API_KEY: z.string().default(''),
   CLOUDINARY_API_SECRET: z.string().default(''),
+
+  // Algolia (Sprint 6)
+  ALGOLIA_APP_ID: z.string().optional().default(''),
+  ALGOLIA_API_KEY: z.string().optional().default(''),
+  ALGOLIA_SEARCH_KEY: z.string().optional().default(''),
+
+  // Twilio (WhatsApp - Sprint 6)
+  TWILIO_ACCOUNT_SID: z.string().optional().default(''),
+  TWILIO_AUTH_TOKEN: z.string().optional().default(''),
+  TWILIO_WHATSAPP_FROM: z.string().optional().default(''),
+
+  // Chatbase
+  CHATBASE_SYNC_SECRET: z.string().optional().default(''),
 });
 
 export type Env = z.infer<typeof envSchema>;

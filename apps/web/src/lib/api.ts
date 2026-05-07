@@ -3,6 +3,7 @@ import type {
   ProductCard as ProductCardType,
   ProductDetail,
   User,
+  ApplyPromoResponse,
 } from '@ecommerce/shared-types';
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
@@ -27,7 +28,9 @@ export const serverApi = {
   products: {
     list: (params?: Record<string, string>) => {
       const qs = params && Object.keys(params).length ? `?${new URLSearchParams(params)}` : '';
-      return serverFetch<Paginated<ProductCardType>>(`/products${qs}`, { cache: 'no-store' });
+      return serverFetch<Paginated<ProductCardType>>(`/products${qs}`, {
+        next: { revalidate: 3600 },
+      });
     },
     bySlug: (slug: string) =>
       serverFetch<ProductDetail>(`/products/${slug}`, { next: { revalidate: 3600 } }),
@@ -37,6 +40,12 @@ export const serverApi = {
       serverFetch<ProductCardType[]>('/products/featured', { next: { revalidate: 900 } }),
     bestsellers: () =>
       serverFetch<ProductCardType[]>('/products/bestsellers', { next: { revalidate: 3600 } }),
+  },
+  reviews: {
+    listByProduct: (productId: string, page = 1) =>
+      serverFetch<unknown>(`/products/${productId}/reviews?page=${page}`, {
+        next: { revalidate: 300 },
+      }),
   },
 };
 
@@ -57,7 +66,7 @@ export class AuthError extends Error {
   }
 }
 
-async function clientFetch<T>(
+export async function authenticatedFetch<T>(
   path: string,
   init: RequestInit & { _isRetry?: boolean } = {},
 ): Promise<T> {
@@ -75,7 +84,7 @@ async function clientFetch<T>(
 
   if (res.status === 401 && !_isRetry) {
     const ok = await tryRefresh();
-    if (ok) return clientFetch<T>(path, { ...init, _isRetry: true });
+    if (ok) return authenticatedFetch<T>(path, { ...init, _isRetry: true });
     _accessToken = null;
     throw new AuthError();
   }
@@ -124,6 +133,7 @@ export interface AuthResponse {
 export interface Auth2FAResponse {
   requires2FA: true;
   tempToken: string;
+  role: string;
 }
 
 export type LoginResponse = AuthResponse | Auth2FAResponse;
@@ -147,6 +157,7 @@ export interface ValidatedCart {
     quantity: number;
     isValid: boolean;
     reason?: string;
+    stockAvailable?: number;
   }[];
   subtotalCents: number;
   isValid: boolean;
@@ -164,6 +175,7 @@ export interface CreateOrderData {
   };
   giftMessage?: string;
   promoCode?: string;
+  paymentMethod?: 'ONLINE' | 'CASH_ON_DELIVERY';
 }
 
 export interface CreateOrderResult {
@@ -173,65 +185,94 @@ export interface CreateOrderResult {
 
 export const clientApi = {
   wishlist: {
-    list: () => clientFetch<ProductCardType[]>('/wishlist'),
+    list: () => authenticatedFetch<ProductCardType[]>('/wishlist'),
     add: (productId: string) =>
-      clientFetch<{ productId: string; wishlisted: boolean }>(`/wishlist/${productId}`, {
+      authenticatedFetch<{ productId: string; wishlisted: boolean }>(`/wishlist/${productId}`, {
         method: 'POST',
       }),
     remove: (productId: string) =>
-      clientFetch<void>(`/wishlist/${productId}`, { method: 'DELETE' }),
+      authenticatedFetch<void>(`/wishlist/${productId}`, { method: 'DELETE' }),
   },
   cart: {
     sync: (items: CartItemInput[]) =>
-      clientFetch<void>('/cart/sync', {
+      authenticatedFetch<void>('/cart/sync', {
         method: 'POST',
         body: JSON.stringify({ items }),
       }),
     validate: (items: CartItemInput[]) =>
-      clientFetch<ValidatedCart>('/cart/validate', {
+      authenticatedFetch<ValidatedCart>('/cart/validate', {
         method: 'POST',
         body: JSON.stringify({ items }),
+      }),
+    applyPromo: (code: string, subtotalCents: number) =>
+      authenticatedFetch<ApplyPromoResponse>('/cart/apply-promo', {
+        method: 'POST',
+        body: JSON.stringify({ code, subtotalCents }),
+      }),
+    recover: (token: string) =>
+      authenticatedFetch<ValidatedCart>('/cart/recover', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
       }),
   },
   orders: {
     create: (data: CreateOrderData) =>
-      clientFetch<CreateOrderResult>('/orders', {
+      authenticatedFetch<CreateOrderResult>('/orders', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    list: () => clientFetch<unknown[]>('/orders'),
-    get: (orderId: string) => clientFetch<unknown>(`/orders/${orderId}`),
+    list: () => authenticatedFetch<unknown[]>('/orders'),
+    get: (orderId: string) => authenticatedFetch<unknown>(`/orders/${orderId}`),
   },
   auth: {
     login: (data: LoginData) =>
-      clientFetch<LoginResponse>('/auth/login', {
+      authenticatedFetch<LoginResponse>('/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
     register: (data: RegisterData) =>
-      clientFetch<AuthResponse>('/auth/register', {
+      authenticatedFetch<AuthResponse>('/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    me: () => clientFetch<User>('/auth/me'),
-    logout: () => clientFetch<void>('/auth/logout', { method: 'POST' }),
+    me: () => authenticatedFetch<User>('/auth/me'),
+    logout: () => authenticatedFetch<void>('/auth/logout', { method: 'POST' }),
     refresh: tryRefresh,
     verifyEmail: (token: string) =>
-      clientFetch<{ message: string }>('/auth/verify-email', {
+      authenticatedFetch<{ message: string }>('/auth/verify-email', {
         method: 'POST',
         body: JSON.stringify({ token }),
       }),
     resendVerification: () =>
-      clientFetch<{ message: string }>('/auth/resend-verification', { method: 'POST' }),
+      authenticatedFetch<{ message: string }>('/auth/resend-verification', { method: 'POST' }),
     forgotPassword: (email: string) =>
-      clientFetch<{ message: string }>('/auth/forgot-password', {
+      authenticatedFetch<{ message: string }>('/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email }),
       }),
     resetPassword: (token: string, password: string) =>
-      clientFetch<{ message: string }>('/auth/reset-password', {
+      authenticatedFetch<{ message: string }>('/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ token, password }),
+      }),
+    verify2FA: (tempToken: string, code: string) =>
+      authenticatedFetch<{ accessToken: string }>('/auth/2fa/verify', {
+        method: 'POST',
+        body: JSON.stringify({ tempToken, code }),
+      }),
+    unsubscribe: (email: string) =>
+      authenticatedFetch<{ success: boolean }>('/users/unsubscribe', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      }),
+  },
+  reviews: {
+    listByProduct: (productId: string, page = 1) =>
+      fetch(`${BASE}/products/${productId}/reviews?page=${page}`).then((res) => res.json()),
+    create: (productId: string, data: { rating: number; title?: string; comment: string }) =>
+      authenticatedFetch<unknown>(`/products/${productId}/reviews`, {
+        method: 'POST',
+        body: JSON.stringify(data),
       }),
   },
 };

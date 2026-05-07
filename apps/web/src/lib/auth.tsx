@@ -7,6 +7,7 @@ import { clientApi, type LoginData, type RegisterData, setAccessToken } from './
 
 export interface LoginResult {
   requires2FA?: true;
+  requires2FASetup?: true;
   tempToken?: string;
   role?: string;
   totpEnabled?: boolean;
@@ -18,6 +19,7 @@ interface AuthCtx {
   login: (data: LoginData) => Promise<LoginResult>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
+  verify2FA: (tempToken: string, code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx | null>(null);
@@ -44,7 +46,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('requires2FA' in result && result.requires2FA) {
       return {
         requires2FA: true,
-        tempToken: (result as { requires2FA: true; tempToken: string }).tempToken,
+        tempToken: (result as { requires2FA: true; tempToken: string; role: string }).tempToken,
+        role: (result as { requires2FA: true; tempToken: string; role: string }).role,
+      };
+    }
+    if ('requires2FASetup' in result && (result as { requires2FASetup: true }).requires2FASetup) {
+      return {
+        requires2FASetup: true,
+        tempToken: (result as { requires2FASetup: true; tempToken: string; role: string })
+          .tempToken,
+        role: (result as { requires2FASetup: true; tempToken: string; role: string }).role,
       };
     }
     const ok = result as { user: User; accessToken: string };
@@ -65,8 +76,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const verify2FA = useCallback(async (tempToken: string, code: string) => {
+    const { accessToken } = await clientApi.auth.verify2FA(tempToken, code);
+    setAccessToken(accessToken);
+    const u = await clientApi.auth.me();
+    setUser(u);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, verify2FA }}>
       {children}
     </AuthContext.Provider>
   );

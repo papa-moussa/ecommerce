@@ -8,9 +8,10 @@ import { useEffect, useState } from 'react';
 
 import { WishlistButton } from '@/components/wishlist-button';
 import { clientApi } from '@/lib/api';
-import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/currency';
 
 export default function WishlistPage(): JSX.Element {
+  const { format } = useCurrency();
   const [products, setProducts] = useState<ProductCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,7 +61,6 @@ export default function WishlistPage(): JSX.Element {
                 <div className="absolute right-3 top-3 z-10">
                   <WishlistButton
                     productId={product.id}
-                    initialWishlisted
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
                     onRemove={() => handleRemove(product.id)}
                   />
@@ -96,7 +96,7 @@ export default function WishlistPage(): JSX.Element {
                       {product.name}
                     </h2>
                     <p className="text-sm font-medium text-brand-ink">
-                      {formatPrice(product.priceCents, product.currency)}
+                      {format(product.priceCents)}
                     </p>
                   </div>
                 </Link>

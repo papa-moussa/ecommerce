@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { clientApi } from '@/lib/api';
-import { formatPrice } from '@/lib/utils';
+import { useCurrency } from '@/lib/currency';
 
 interface OrderItem {
   id: string;
@@ -29,6 +29,7 @@ type Status = 'loading' | 'found' | 'not_found' | 'error';
 
 export default function ConfirmationPage(): JSX.Element {
   const { orderId } = useParams<{ orderId: string }>();
+  const { format } = useCurrency();
   const [status, setStatus] = useState<Status>('loading');
   const [order, setOrder] = useState<Order | null>(null);
 
@@ -68,6 +69,67 @@ export default function ConfirmationPage(): JSX.Element {
     order.status === 'SHIPPED' ||
     order.status === 'DELIVERED';
 
+  const renderDetails = () => (
+    <div className="mt-10 rounded-xl border border-brand-ink/10 bg-white p-6 text-left">
+      <h2 className="mb-4 font-serif text-lg text-brand-ink">Détail de la commande</h2>
+      <ul className="space-y-3">
+        {order.items.map((item) => (
+          <li key={item.id} className="flex justify-between text-sm">
+            <span className="text-brand-ink/70">
+              {item.productName}
+              {item.variantLabel ? ` — ${item.variantLabel}` : ''}
+              {item.quantity > 1 ? ` × ${item.quantity}` : ''}
+            </span>
+            <span className="font-medium text-brand-ink">{format(item.totalCents)}</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4 border-t border-brand-ink/10 pt-4 flex justify-between font-medium text-brand-ink">
+        <span>Total</span>
+        <span>{format(order.totalCents)}</span>
+      </div>
+    </div>
+  );
+
+  const renderActions = () => (
+    <div className="mt-8 flex flex-col items-center gap-3">
+      <Link
+        href={order.userId ? `/compte/commandes/${order.id}` : '/produits'}
+        className="rounded-full bg-brand-ink px-8 py-3 text-sm font-medium text-brand-ivory transition-colors hover:bg-brand-gold"
+      >
+        {order.userId ? 'Suivre ma commande' : 'Continuer mes achats'}
+      </Link>
+      {order.userId && (
+        <Link href="/produits" className="text-xs text-brand-ink/40 hover:text-brand-ink">
+          Continuer mes achats
+        </Link>
+      )}
+    </div>
+  );
+
+  if (order.status === 'PENDING_CONFIRMATION') {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16 text-center">
+        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand-gold/10 text-3xl">
+          📞
+        </div>
+        <h1 className="font-serif text-3xl text-brand-ink">Commande reçue&nbsp;!</h1>
+        <p className="mt-3 text-sm text-brand-ink/60">
+          Votre commande{' '}
+          <span className="font-medium text-brand-ink">#{order.id.slice(-8).toUpperCase()}</span> a
+          bien été enregistrée.
+        </p>
+        <p className="mt-6 text-base font-medium text-brand-gold bg-brand-gold/5 p-4 rounded-xl border border-brand-gold/20">
+          Notre équipe va vous appeler sous peu pour confirmer votre commande et l'adresse de
+          livraison.
+        </p>
+
+        {renderDetails()}
+        {renderActions()}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-xl px-4 py-16 text-center">
       {isPaid ? (
@@ -95,38 +157,8 @@ export default function ConfirmationPage(): JSX.Element {
         </>
       )}
 
-      {/* Order items */}
-      <div className="mt-10 rounded-xl border border-brand-ink/10 bg-white p-6 text-left">
-        <h2 className="mb-4 font-serif text-lg text-brand-ink">Détail de la commande</h2>
-        <ul className="space-y-3">
-          {order.items.map((item) => (
-            <li key={item.id} className="flex justify-between text-sm">
-              <span className="text-brand-ink/70">
-                {item.productName}
-                {item.variantLabel ? ` — ${item.variantLabel}` : ''}
-                {item.quantity > 1 ? ` × ${item.quantity}` : ''}
-              </span>
-              <span className="font-medium text-brand-ink">{formatPrice(item.totalCents)}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 border-t border-brand-ink/10 pt-4 flex justify-between font-medium text-brand-ink">
-          <span>Total payé</span>
-          <span>{formatPrice(order.totalCents, order.currency)}</span>
-        </div>
-      </div>
-
-      <div className="mt-8 flex flex-col items-center gap-3">
-        <Link
-          href="/produits"
-          className="rounded-full bg-brand-ink px-8 py-3 text-sm font-medium text-brand-ivory transition-colors hover:bg-brand-gold"
-        >
-          Continuer mes achats
-        </Link>
-        <Link href="/compte" className="text-xs text-brand-ink/40 hover:text-brand-ink">
-          Voir mes commandes
-        </Link>
-      </div>
+      {renderDetails()}
+      {renderActions()}
     </div>
   );
 }

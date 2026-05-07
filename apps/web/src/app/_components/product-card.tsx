@@ -5,9 +5,17 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 
-import { formatPrice } from '@/lib/utils';
+import { WishlistButton } from '@/components/wishlist-button';
+import { useCurrency } from '@/lib/currency';
 
-export function ProductCard({ product }: { product: ProductCard }) {
+export function ProductCard({
+  product,
+  onRemove,
+}: {
+  product: ProductCard;
+  onRemove?: () => void;
+}) {
+  const { format } = useCurrency();
   const image = product.images[0];
 
   return (
@@ -28,13 +36,21 @@ export function ProductCard({ product }: { product: ProductCard }) {
             </div>
           )}
 
+          <div className="absolute right-2 top-2 z-10">
+            <WishlistButton
+              productId={product.id}
+              onRemove={onRemove}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition hover:bg-white"
+            />
+          </div>
+
           {product.stockStatus === 'OUT_OF_STOCK' && (
-            <span className="absolute right-2 top-2 rounded-full bg-brand-ink px-2.5 py-0.5 text-xs text-brand-ivory">
+            <span className="absolute left-2 top-2 rounded-full bg-brand-ink px-2.5 py-0.5 text-xs text-brand-ivory">
               Épuisé
             </span>
           )}
           {product.stockStatus === 'LOW_STOCK' && (
-            <span className="absolute right-2 top-2 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs text-white">
+            <span className="absolute left-2 top-2 rounded-full bg-amber-600 px-2.5 py-0.5 text-xs text-white">
               Stock limité
             </span>
           )}
@@ -45,8 +61,18 @@ export function ProductCard({ product }: { product: ProductCard }) {
           <h3 className="font-serif text-base text-brand-ink transition-colors group-hover:text-brand-gold">
             {product.name}
           </h3>
+
           <p className="text-sm font-medium text-brand-ink">
-            {formatPrice(product.priceCents, product.currency)}
+            {product.variants && product.variants.length > 1 && (
+              <span className="text-[10px] font-normal text-brand-ink/40 mr-1 italic">
+                À partir de
+              </span>
+            )}
+            {format(
+              product.variants && product.variants.length > 0
+                ? Math.min(...product.variants.map((v) => v.priceCents ?? product.priceCents))
+                : product.priceCents,
+            )}
           </p>
         </div>
       </Link>

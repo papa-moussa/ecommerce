@@ -5,10 +5,11 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ['@ecommerce/shared-types', '@ecommerce/ui'],
-  experimental: {
-    typedRoutes: true,
-  },
+  output: 'standalone',
+  typedRoutes: true,
   images: {
+    loader: 'custom',
+    loaderFile: './src/lib/cloudinary-loader.ts',
     remotePatterns: [
       { protocol: 'https', hostname: 'res.cloudinary.com' },
       { protocol: 'https', hostname: 'images.unsplash.com' },

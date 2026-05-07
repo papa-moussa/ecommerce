@@ -95,10 +95,43 @@ Types autorisés : `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `
 
 ## Déploiement
 
-- `main` → image Docker `ghcr.io/<org>/api:staging-<sha>` (voir `.github/workflows/deploy.yml`)
-- Tag `v*.*.*` → image production
+- `main` → image Docker `ghcr.io/<org>/api:staging-<sha>` déployée sur le VPS staging (voir `.github/workflows/deploy.yml`)
+- Tag `v*.*.*` → image production déployée sur le VPS production
 
-Configurer les **Secrets GitHub** : `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`, plus les secrets de ta cible de déploiement.
+**Secrets GitHub à configurer** :
+
+| Secret | Usage |
+|---|---|
+| `STAGING_HOST` | IP/hostname du VPS staging |
+| `STAGING_USER` | Utilisateur SSH (ex : `deploy`) |
+| `STAGING_SSH_KEY` | Clé SSH privée (Ed25519 recommandé) |
+| `PRODUCTION_HOST` | IP/hostname du VPS production |
+| `PRODUCTION_USER` | Utilisateur SSH |
+| `PRODUCTION_SSH_KEY` | Clé SSH privée |
+| `SENTRY_AUTH_TOKEN` | Token Sentry pour upload sourcemaps |
+| `SENTRY_ORG` | Organisation Sentry |
+| `SENTRY_PROJECT` | Projet Sentry |
+
+**Variables GitHub** (`vars.*`) :
+
+| Variable | Exemple |
+|---|---|
+| `STAGING_URL` | `https://staging.maison-parfum.fr` |
+| `PRODUCTION_URL` | `https://maison-parfum.fr` |
+
+Le step SSH exécute `docker compose up -d --no-build api` côté serveur. Le `docker-compose.staging.yml` / `docker-compose.prod.yml` doivent référencer l'image GHCR correspondante.
+
+## SEO — Soumission du sitemap
+
+Après le premier déploiement en production :
+
+1. **Google Search Console** — Aller sur [search.google.com/search-console](https://search.google.com/search-console), ajouter la propriété `https://maison-parfum.fr`, vérifier via balise meta ou DNS, puis dans _Sitemaps_ soumettre `https://maison-parfum.fr/sitemap.xml`.
+
+2. **Bing Webmaster Tools** — Aller sur [bing.com/webmasters](https://www.bing.com/webmasters), importer depuis GSC (option la plus rapide) ou ajouter la propriété manuellement et soumettre le sitemap.
+
+3. **Ping Google** — Le sitemap Next.js est régénéré automatiquement (ISR `revalidate: 3600`). Pour forcer une ré-indexation après ajout de produits en masse : `curl "https://www.google.com/ping?sitemap=https://maison-parfum.fr/sitemap.xml"`.
+
+4. **Robots.txt** — Vérifier que `https://maison-parfum.fr/robots.txt` est accessible et référence le sitemap.
 
 ## Sécurité (Sprint 0 posée, durcie en Sprint 1)
 

@@ -1,11 +1,13 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseInterceptors } from '@nestjs/common';
 
 import { Public } from '../common/decorators/public.decorator';
+import { HttpCacheInterceptor } from '../common/interceptors/http-cache.interceptor';
 
 import { ListProductsDto } from './dto/list-products.dto';
 import { ProductsService } from './products.service';
 
 @Public()
+@UseInterceptors(HttpCacheInterceptor)
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}

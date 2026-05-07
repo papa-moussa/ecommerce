@@ -14,3 +14,53 @@ body {
 body {
   @apply bg-brand-ivory text-brand-ink antialiased;
 }
+
+/* ── Custom scrollbar ─────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-brand-ink/10 rounded-full;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-brand-gold/40;
+}
+
+/* ── Admin surface tokens ─────────────────────────── */
+@layer components {
+  .admin-card {
+    @apply bg-white rounded-2xl border border-brand-ink/[0.06] shadow-sm;
+  }
+  .admin-label {
+    @apply text-[10px] font-bold uppercase tracking-[0.12em] text-brand-ink/40;
+  }
+  .admin-section-title {
+    @apply text-sm font-bold text-brand-ink/60 uppercase tracking-widest;
+  }
+  .admin-input {
+    @apply w-full bg-brand-ivory/30 border border-brand-ink/[0.08] rounded-xl px-4 py-3 text-sm
+           placeholder:text-brand-ink/30 focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/[0.08]
+           outline-none transition-all;
+  }
+  .admin-select {
+    @apply w-full bg-brand-ivory/30 border border-brand-ink/[0.08] rounded-xl px-4 py-3 text-sm
+           focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/[0.08] outline-none
+           appearance-none transition-all;
+  }
+  .admin-btn-primary {
+    @apply flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-widest
+           bg-brand-ink text-brand-ivory rounded-xl hover:bg-brand-gold transition-all
+           shadow-lg shadow-brand-ink/10 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .admin-btn-ghost {
+    @apply flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest
+           text-brand-ink/40 hover:text-brand-ink hover:bg-brand-ivory/60 rounded-xl transition-all;
+  }
+  .admin-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border;
+  }
+}

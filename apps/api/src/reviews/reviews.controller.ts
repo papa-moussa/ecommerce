@@ -45,8 +45,8 @@ export class ReviewsController {
   @Roles('ADMIN')
   @UseInterceptors(AuditLogInterceptor)
   @Get('admin/reviews')
-  listPendingReviews(@Query('page') page?: string) {
-    return this.reviewsService.listPendingReviews(page ? parseInt(page, 10) : 1);
+  listAllReviews(@Query('page') page?: string) {
+    return this.reviewsService.listAllReviews(page ? parseInt(page, 10) : 1);
   }
 
   @Roles('ADMIN')

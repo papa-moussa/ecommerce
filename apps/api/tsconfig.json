@@ -3,11 +3,12 @@
   "compilerOptions": {
     "baseUrl": "./",
     "outDir": "./dist",
-    "rootDir": ".",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "paths": {
       "@ecommerce/shared-types": ["../../packages/shared-types/src"]
-    }
+    },
+    "jsx": "react-jsx",
+    "rootDir": "src"
   },
   "include": ["src/**/*", "test/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]

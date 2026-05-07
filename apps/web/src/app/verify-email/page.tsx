@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 import { clientApi } from '@/lib/api';
 
 type Status = 'pending' | 'success' | 'error';
 
-export default function VerifyEmailPage(): JSX.Element {
+function VerifyEmailPageContent(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState<Status>('pending');
@@ -71,5 +71,13 @@ export default function VerifyEmailPage(): JSX.Element {
         </>
       )}
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense>
+      <VerifyEmailPageContent />
+    </Suspense>
   );
 }

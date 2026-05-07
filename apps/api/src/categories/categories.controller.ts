@@ -8,15 +8,18 @@ import {
   Param,
   Post,
   Put,
+  UseInterceptors,
 } from '@nestjs/common';
 
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { HttpCacheInterceptor } from '../common/interceptors/http-cache.interceptor';
 
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
+@UseInterceptors(HttpCacheInterceptor)
 @Controller()
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}

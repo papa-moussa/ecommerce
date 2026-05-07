@@ -3,6 +3,7 @@ import { type Order, type OrderItem, type Payment } from '@prisma/client';
 
 import { StripeService } from '../payments/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PromoCodesService } from '../promo-codes/promo-codes.service';
 import { StockService } from '../stock/stock.service';
 
 import { type CreateOrderDto } from './dto/create-order.dto';
@@ -23,9 +24,10 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly stockService: StockService,
     private readonly stripeService: StripeService,
+    private readonly promoCodesService: PromoCodesService,
   ) {}
 
-  async create(userId: string, dto: CreateOrderDto): Promise<CreateOrderResult> {
+  async create(userId: string | null, dto: CreateOrderDto): Promise<CreateOrderResult> {
     // Step 1: Validate all items and compute prices server-side
     const lineItems: {
       productId: string;
@@ -73,7 +75,7 @@ export class OrdersService {
         if (!variant) {
           throw new NotFoundException(`Variante introuvable: ${item.variantId}`);
         }
-        unitPriceCents = variant.priceCents;
+        unitPriceCents = variant.priceCents ?? product.priceCents;
         stockAvailable = variant.stock;
         variantLabel = `${variant.sizeMl}ml`;
       } else {
@@ -102,16 +104,36 @@ export class OrdersService {
     const subtotalCents = lineItems.reduce((sum, i) => sum + i.totalCents, 0);
     const shippingCents = 0;
     const taxCents = 0;
-    const discountCents = 0;
+
+    let discountCents = 0;
+    let promoCodeId: string | null = null;
+
+    if (dto.promoCode) {
+      // For now, promo codes might require a user, but let's allow guest promos if service supports it
+      const promoResult = await this.promoCodesService.applyPromo(
+        dto.promoCode,
+        userId || '',
+        subtotalCents,
+      );
+      discountCents = promoResult.discountCents;
+
+      const promoRecord = await this.prisma.promoCode.findUnique({
+        where: { code: promoResult.code },
+      });
+      if (promoRecord) promoCodeId = promoRecord.id;
+    }
+
     const totalCents = subtotalCents + shippingCents + taxCents - discountCents;
-    const currency = 'eur';
+    const currency = 'xof';
 
     // Step 8: Prisma transaction — create Order + OrderItems + reserve stock
     const order = await this.prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
         data: {
           userId,
-          status: 'PENDING',
+          customerEmail: dto.email || null,
+          customerPhone: dto.phone || null,
+          status: dto.paymentMethod === 'CASH_ON_DELIVERY' ? 'PENDING_CONFIRMATION' : 'PENDING',
           subtotalCents,
           discountCents,
           shippingCents,
@@ -119,6 +141,7 @@ export class OrdersService {
           totalCents,
           currency: currency.toUpperCase(),
           promoCode: dto.promoCode ?? null,
+          paymentMethod: dto.paymentMethod || 'ONLINE',
           shippingAddress: dto.shippingAddress as object,
           giftMessage: dto.giftMessage ?? null,
           items: {
@@ -137,6 +160,21 @@ export class OrdersService {
         },
       });
 
+      if (promoCodeId && discountCents > 0 && userId) {
+        await tx.promoCodeUsage.create({
+          data: {
+            promoCodeId,
+            userId,
+            orderId: createdOrder.id,
+            discountCents,
+          },
+        });
+        await tx.promoCode.update({
+          where: { id: promoCodeId },
+          data: { usedCount: { increment: 1 } },
+        });
+      }
+
       return createdOrder;
     });
 
@@ -145,12 +183,31 @@ export class OrdersService {
       await this.stockService.reserveStock(li.productId, li.quantity);
     }
 
-    // Step 9: Create Stripe PaymentIntent
+    // Step 9: Handle Payments
+    if (dto.paymentMethod === 'CASH_ON_DELIVERY') {
+      // For COD, we just create a CASH payment record
+      await this.prisma.payment.create({
+        data: {
+          orderId: order.id,
+          provider: 'CASH',
+          status: 'PENDING',
+          amountCents: totalCents,
+          currency: currency.toUpperCase(),
+        },
+      });
+
+      return {
+        orderId: order.id,
+        clientSecret: '',
+      };
+    }
+
+    // Step 10: Create Stripe PaymentIntent
     const paymentIntent = await this.stripeService.createPaymentIntent(totalCents, currency, {
       orderId: order.id,
     });
 
-    // Step 10: Create Payment record
+    // Step 11: Create Payment record
     const payment = await this.prisma.payment.create({
       data: {
         orderId: order.id,
@@ -164,7 +221,7 @@ export class OrdersService {
       select: { stripeClientSecret: true },
     });
 
-    // Step 11: Return result
+    // Step 12: Return result
     return {
       orderId: order.id,
       clientSecret: payment.stripeClientSecret ?? '',
@@ -195,7 +252,13 @@ export class OrdersService {
     const order = await this.prisma.order.findFirst({
       where: { id: orderId, userId },
       include: {
-        items: true,
+        items: {
+          include: {
+            product: {
+              select: { slug: true },
+            },
+          },
+        },
         payments: {
           select: {
             id: true,
@@ -214,5 +277,36 @@ export class OrdersService {
     }
 
     return order;
+  }
+
+  async findOneForGuest(orderId: string): Promise<OrderWithDetails> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { slug: true },
+            },
+          },
+        },
+        payments: {
+          select: {
+            id: true,
+            provider: true,
+            status: true,
+            amountCents: true,
+            currency: true,
+            paidAt: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Commande introuvable: ${orderId}`);
+    }
+
+    return order as any;
   }
 }

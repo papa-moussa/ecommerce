@@ -13,6 +13,7 @@ interface AddToCartButtonProps {
   stockStatus: string;
   selectedVariantId?: string;
   selectedSizeMl?: number;
+  maxStock?: number;
 }
 
 export function AddToCartButton({
@@ -24,13 +25,21 @@ export function AddToCartButton({
   stockStatus,
   selectedVariantId,
   selectedSizeMl,
+  maxStock = 99,
 }: AddToCartButtonProps) {
-  const { addItem } = useCartStore();
+  const { addItem, items } = useCartStore();
   const [added, setAdded] = useState(false);
 
-  const outOfStock = stockStatus === 'OUT_OF_STOCK';
+  const existingItem = items.find(
+    (i) => i.productId === productId && i.variantId === selectedVariantId,
+  );
+  const currentQtyInCart = existingItem?.quantity || 0;
+
+  const outOfStock = stockStatus === 'OUT_OF_STOCK' || currentQtyInCart >= maxStock;
 
   function handleClick() {
+    if (currentQtyInCart >= maxStock) return;
+
     addItem({
       productId,
       variantId: selectedVariantId,
@@ -39,6 +48,7 @@ export function AddToCartButton({
       imageUrl,
       unitPriceCents,
       sizeMl: selectedSizeMl,
+      stock: maxStock,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -48,9 +58,15 @@ export function AddToCartButton({
     <button
       onClick={handleClick}
       disabled={outOfStock}
-      className="w-full rounded-full bg-brand-ink py-3 font-medium text-brand-ivory transition-colors hover:bg-brand-gold disabled:cursor-not-allowed disabled:opacity-40"
+      className="w-full rounded-full bg-brand-ink py-4 font-medium text-brand-ivory transition-all hover:bg-brand-gold disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
     >
-      {outOfStock ? 'Épuisé' : added ? '✓ Ajouté au panier' : 'Ajouter au panier'}
+      {stockStatus === 'OUT_OF_STOCK'
+        ? 'Épuisé'
+        : currentQtyInCart >= maxStock
+          ? 'Limite de stock atteinte'
+          : added
+            ? '✓ Ajouté au panier'
+            : 'Ajouter au panier'}
     </button>
   );
 }

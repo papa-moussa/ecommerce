@@ -3,11 +3,12 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+import { useAuth } from '@/lib/auth';
 
 function Verify2FAForm() {
   const router = useRouter();
   const params = useSearchParams();
+  const { verify2FA } = useAuth();
   const tempToken = params.get('t') ?? '';
   const redirect = params.get('redirect') ?? '/admin';
 
@@ -24,16 +25,7 @@ function Verify2FAForm() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${BASE}/auth/2fa/verify`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tempToken, code }),
-      });
-      if (!res.ok) {
-        const b = await res.json().catch(() => ({}));
-        throw new Error((b as { message?: string }).message ?? 'Code invalide.');
-      }
+      await verify2FA(tempToken, code);
       router.push(redirect);
     } catch (e) {
       setError((e as Error).message);
