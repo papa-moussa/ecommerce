@@ -98,6 +98,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate test RSA key pair for JWT RS256 (SEC-022)
+        run: |
+          openssl genrsa 2048 2>/dev/null > /tmp/ci_jwt_private.pem
+          openssl rsa -in /tmp/ci_jwt_private.pem -pubout 2>/dev/null > /tmp/ci_jwt_public.pem
+          {
+            echo 'JWT_PRIVATE_KEY<<RSAEOF'
+            cat /tmp/ci_jwt_private.pem
+            echo 'RSAEOF'
+            echo 'JWT_PUBLIC_KEY<<RSAEOF'
+            cat /tmp/ci_jwt_public.pem
+            echo 'RSAEOF'
+          } >> "$GITHUB_ENV"
+
       - name: Generate Prisma client
         run: pnpm --filter @ecommerce/api prisma:generate
 

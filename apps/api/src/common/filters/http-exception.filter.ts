@@ -46,15 +46,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = exception.message;
     }
 
-    // Send 5xx to Sentry only (avoid noise on 4xx validation errors)
-    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+    // SEC-018: capture 401/403/429 as security events (warning level) and 5xx as errors.
+    // Standard 4xx (400, 404, 422…) are omitted to avoid noise.
+    const SECURITY_CODES = new Set([401, 403, 429]);
+    const isSecurityEvent = SECURITY_CODES.has(status);
+    const is5xx = status >= HttpStatus.INTERNAL_SERVER_ERROR;
+
+    if (is5xx || isSecurityEvent) {
       Sentry.captureException(exception, {
-        tags: { requestId: request.id, path: request.url },
+        level: is5xx ? 'error' : 'warning',
+        tags: {
+          requestId: request.id ?? '',
+          path: request.url,
+          // SEC-018: tag lets Sentry dashboards filter on security events
+          security: isSecurityEvent ? 'true' : 'false',
+        },
       });
-      this.logger.error(
-        `[${request.id ?? '-'}] ${request.method} ${request.url} → ${status}`,
-        exception instanceof Error ? exception.stack : String(exception),
-      );
+      if (is5xx) {
+        this.logger.error(
+          `[${request.id ?? '-'}] ${request.method} ${request.url} → ${status}`,
+          exception instanceof Error ? exception.stack : String(exception),
+        );
+      } else {
+        // Security event — log as warning so it's visible in structured logs
+        this.logger.warn(
+          `[SEC-018] [${request.id ?? '-'}] ${request.method} ${request.url} → ${status}`,
+        );
+      }
     }
 
     // SEC-015: mask path in production — prevents route structure enumeration

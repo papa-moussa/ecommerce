@@ -22,11 +22,20 @@ import { TotpService } from './totp.service';
     UsersModule,
     NotificationsModule,
     PassportModule,
+    // SEC-022: RS256 — sign with private key, verify with public key.
+    // The private key never leaves the API; the public key is also exposed via
+    // /.well-known/jwks.json so external verifiers (e.g. Next.js Edge middleware)
+    // can verify tokens without needing the signing secret.
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<AppConfig, true>) => ({
-        secret: config.get('JWT_ACCESS_SECRET', { infer: true }),
-        signOptions: { expiresIn: config.get('JWT_ACCESS_EXPIRES_IN', { infer: true }) },
+        privateKey: config.get('JWT_PRIVATE_KEY', { infer: true }),
+        publicKey: config.get('JWT_PUBLIC_KEY', { infer: true }),
+        signOptions: {
+          algorithm: 'RS256',
+          expiresIn: config.get('JWT_ACCESS_EXPIRES_IN', { infer: true }),
+        },
+        verifyOptions: { algorithms: ['RS256'] },
       }),
     }),
   ],

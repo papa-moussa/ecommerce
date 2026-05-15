@@ -29,6 +29,7 @@ import { SearchModule } from './search/search.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { StockModule } from './stock/stock.module';
 import { UsersModule } from './users/users.module';
+import { WellKnownModule } from './well-known/well-known.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
@@ -56,6 +57,9 @@ import { WishlistModule } from './wishlist/wishlist.module';
           CORS_ORIGIN: config.get('CORS_ORIGIN', { infer: true }),
           DATABASE_URL: config.get('DATABASE_URL', { infer: true }),
           REDIS_URL: config.get('REDIS_URL', { infer: true }),
+          // SEC-022: RS256 keys (PEM strings — logged as existence check only, never the raw value)
+          JWT_PRIVATE_KEY: config.get('JWT_PRIVATE_KEY', { infer: true }),
+          JWT_PUBLIC_KEY: config.get('JWT_PUBLIC_KEY', { infer: true }),
           JWT_ACCESS_SECRET: config.get('JWT_ACCESS_SECRET', { infer: true }),
           JWT_REFRESH_SECRET: config.get('JWT_REFRESH_SECRET', { infer: true }),
           JWT_TEMP_SECRET: config.get('JWT_TEMP_SECRET', { infer: true }),
@@ -109,6 +113,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     ShippingModule,
     CacheModule,
     ChatbaseModule,
+    WellKnownModule, // SEC-022: exposes /.well-known/jwks.json with the RS256 public key
   ],
   providers: [{ provide: APP_GUARD, useClass: CustomThrottlerGuard }],
 })

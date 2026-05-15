@@ -37,9 +37,12 @@ import { ReviewRequestScheduler } from './review-request.scheduler';
     PromoCodesModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
+      // SEC-022: RS256 — cart recovery tokens signed with private key
       useFactory: (config: ConfigService<AppConfig, true>) => ({
-        secret: config.get('JWT_ACCESS_SECRET', { infer: true }),
-        signOptions: { expiresIn: '7d' }, // Longer expiration for cart recovery
+        privateKey: config.get('JWT_PRIVATE_KEY', { infer: true }),
+        publicKey: config.get('JWT_PUBLIC_KEY', { infer: true }),
+        signOptions: { algorithm: 'RS256', expiresIn: '7d' },
+        verifyOptions: { algorithms: ['RS256'] },
       }),
     }),
   ],

@@ -213,10 +213,13 @@ export class AuthController {
     const secureCookie =
       process.env['NODE_ENV'] === 'production' && process.env['COOKIE_SECURE'] !== 'false';
 
+    // SEC-022: sign session cookie with RSA private key (RS256) so Next.js Edge
+    // middleware can verify it using only the public key — secret never leaves the API.
     const sessionToken = this.jwt.sign(
       { sub: userId, role },
       {
-        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+        privateKey: this.config.get('JWT_PRIVATE_KEY', { infer: true }),
+        algorithm: 'RS256',
         expiresIn: '7d',
       },
     );

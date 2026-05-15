@@ -7,7 +7,8 @@ services:
   # SEC-004: Caddy — automatic TLS (Let's Encrypt) + HTTP→HTTPS redirect
   # ---------------------------------------------------------------------------
   caddy:
-    image: caddy:2.8-alpine
+    # SEC-020: pinned to immutable digest (caddy 2.8-alpine, 2026-05-15)
+    image: caddy:2.8-alpine@sha256:af32e97399febea808609119bb21544d0265c58a02836576e32a2d082c262c17
     restart: unless-stopped
     ports:
       - '80:80'
@@ -24,7 +25,8 @@ services:
       - frontend
 
   postgres:
-    image: postgres:16-alpine
+    # SEC-020: pinned to immutable digest (postgres 16-alpine, 2026-05-15)
+    image: postgres:16-alpine@sha256:890480b08124ce7f79960a9bb16fe39729aa302bd384bfd7c408fee6c8f7adb7
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -44,7 +46,8 @@ services:
       retries: 5
 
   redis:
-    image: redis:7.4-alpine
+    # SEC-020: pinned to immutable digest (redis 7.4-alpine, 2026-05-15)
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: always
     command: ['redis-server', '--appendonly', 'yes', '--requirepass', '${REDIS_PASSWORD}']
     volumes:
@@ -73,7 +76,12 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      # SEC-022: RS256 key pair — private key signs tokens, public key verifies
+      # Store both as PEM strings with \n replaced by literal \n in Doppler
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      # JWT_ACCESS_SECRET kept for backward compat (deprecated — will be removed)
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       # SEC-002: JWT_TEMP_SECRET is mandatory and distinct from JWT_ACCESS_SECRET
       JWT_TEMP_SECRET: ${JWT_TEMP_SECRET}

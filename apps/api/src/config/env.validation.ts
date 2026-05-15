@@ -14,7 +14,21 @@ export const envSchema = z
     DATABASE_URL: z.string().url(),
     REDIS_URL: z.string().url(),
 
-    JWT_ACCESS_SECRET: z.string().min(32),
+    // SEC-022: RS256 asymmetric key pair — private key signs, public key verifies.
+    // Stored as PEM strings with literal \n (replace '\\n' → '\n' before use).
+    JWT_PRIVATE_KEY: z
+      .string()
+      .min(1)
+      .transform((v) => v.replace(/\\n/g, '\n')),
+    JWT_PUBLIC_KEY: z
+      .string()
+      .min(1)
+      .transform((v) => v.replace(/\\n/g, '\n')),
+
+    // SEC-022: JWT_ACCESS_SECRET is deprecated in favour of RS256 keys above.
+    // Kept optional so existing .env files and CI configs continue to work
+    // without change. Will be removed in a future cleanup sprint.
+    JWT_ACCESS_SECRET: z.string().optional().default(''),
     JWT_REFRESH_SECRET: z.string().min(32),
     // SEC-002: Separate secret for 2FA temp tokens — prevents a tempToken from
     // being accepted as a full accessToken by jwt.strategy.ts (defense-in-depth).

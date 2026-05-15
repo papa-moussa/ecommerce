@@ -24,10 +24,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     config: ConfigService<AppConfig, true>,
     private readonly usersService: UsersService,
   ) {
+    // SEC-022: verify with RSA public key — the private key never crosses this boundary.
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: config.get('JWT_ACCESS_SECRET', { infer: true }),
+      secretOrKey: config.get('JWT_PUBLIC_KEY', { infer: true }),
+      algorithms: ['RS256'],
     });
   }
 

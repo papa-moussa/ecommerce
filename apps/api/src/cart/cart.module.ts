@@ -13,8 +13,12 @@ import { CartService } from './cart.service';
     PrismaModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
+      // SEC-022: RS256 — cart recovery tokens signed with private key
       useFactory: (config: ConfigService<AppConfig, true>) => ({
-        secret: config.get('JWT_ACCESS_SECRET', { infer: true }),
+        privateKey: config.get('JWT_PRIVATE_KEY', { infer: true }),
+        publicKey: config.get('JWT_PUBLIC_KEY', { infer: true }),
+        signOptions: { algorithm: 'RS256' },
+        verifyOptions: { algorithms: ['RS256'] },
       }),
     }),
   ],

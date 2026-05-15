@@ -1,13 +1,15 @@
-import { jwtVerify } from 'jose';
+import { importSPKI, jwtVerify } from 'jose';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * SEC-004: Edge middleware — verify ADMIN role before granting access to /admin routes.
+ * SEC-004 / SEC-022: Edge middleware — verify ADMIN role before granting access to /admin routes.
  *
  * Strategy:
  *  1. Check for `user_session` cookie (signed JWT set by the API on login/refresh).
- *  2. Verify the JWT signature using JWT_ACCESS_SECRET (available as a server-side env var).
+ *  2. Verify the JWT signature using JWT_PUBLIC_KEY (RSA public key — no private key needed).
+ *     SEC-022: migrated from HS256 (JWT_ACCESS_SECRET) to RS256 (JWT_PUBLIC_KEY) so the Edge
+ *     Runtime only holds the public key, eliminating the risk of secret exposure at the edge.
  *  3. Check that the `role` claim equals 'ADMIN'.
  *
  * Why a separate user_session cookie instead of decoding the refresh_token?
@@ -19,13 +21,21 @@ import type { NextRequest } from 'next/server';
 const SESSION_COOKIE = 'user_session';
 const ADMIN_PATHS = ['/admin'];
 
-function getJwtSecret(): Uint8Array {
-  const secret = process.env['JWT_ACCESS_SECRET'];
-  if (!secret) {
-    // Fail closed: if the secret is missing, deny all access to admin routes
-    throw new Error('JWT_ACCESS_SECRET is not configured');
+// Cache the imported public key across requests (modules are re-used across invocations)
+let cachedPublicKey: Awaited<ReturnType<typeof importSPKI>> | null = null;
+
+async function getPublicKey(): Promise<Awaited<ReturnType<typeof importSPKI>>> {
+  if (cachedPublicKey) return cachedPublicKey;
+
+  const pem = process.env['JWT_PUBLIC_KEY'];
+  if (!pem) {
+    // Fail closed: if the key is missing, deny all access to admin routes
+    throw new Error('JWT_PUBLIC_KEY is not configured');
   }
-  return new TextEncoder().encode(secret);
+  // Dotenv encodes PEM newlines as literal \n — restore them before importing
+  const normalizedPem = pem.replace(/\\n/g, '\n');
+  cachedPublicKey = await importSPKI(normalizedPem, 'RS256');
+  return cachedPublicKey;
 }
 
 async function verifyAdminSession(request: NextRequest): Promise<boolean> {
@@ -33,9 +43,9 @@ async function verifyAdminSession(request: NextRequest): Promise<boolean> {
   if (!sessionCookie?.value) return false;
 
   try {
-    const secret = getJwtSecret();
-    const { payload } = await jwtVerify(sessionCookie.value, secret, {
-      algorithms: ['HS256'],
+    const publicKey = await getPublicKey();
+    const { payload } = await jwtVerify(sessionCookie.value, publicKey, {
+      algorithms: ['RS256'],
     });
     return payload['role'] === 'ADMIN';
   } catch {
