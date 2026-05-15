@@ -110,10 +110,12 @@ export class OrdersService {
 
     if (dto.promoCode) {
       // For now, promo codes might require a user, but let's allow guest promos if service supports it
+      // HIGH-07 (Audit-2): pass productIds for scope enforcement
       const promoResult = await this.promoCodesService.applyPromo(
         dto.promoCode,
         userId || '',
         subtotalCents,
+        lineItems.map((i) => i.productId),
       );
       discountCents = promoResult.discountCents;
 
@@ -279,7 +281,12 @@ export class OrdersService {
     return order;
   }
 
-  async findOneForGuest(orderId: string): Promise<OrderWithDetails> {
+  // HIGH-03 (Audit-2): email required to prevent IDOR — guest can only see their own order
+  async findOneForGuest(orderId: string, email: string | null): Promise<OrderWithDetails> {
+    if (!email) {
+      throw new BadRequestException('Email requis pour consulter une commande guest');
+    }
+
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -304,6 +311,12 @@ export class OrdersService {
     });
 
     if (!order) {
+      throw new NotFoundException(`Commande introuvable: ${orderId}`);
+    }
+
+    // Constant-time email comparison to prevent timing attacks
+    if (!order.customerEmail || order.customerEmail.toLowerCase() !== email.toLowerCase()) {
+      // Return same 404 as above to avoid leaking order existence
       throw new NotFoundException(`Commande introuvable: ${orderId}`);
     }
 

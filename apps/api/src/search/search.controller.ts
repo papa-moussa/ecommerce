@@ -1,10 +1,11 @@
-import { Controller, Post, Get } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
 
-import { Public } from '../common/decorators/public.decorator';
+import { Roles } from '../common/decorators/roles.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { SearchService } from './search.service';
 
+// CRIT-02 (Audit-2): reindex is ADMIN-only — removed @Public() + debug test endpoint
 @Controller('search')
 export class SearchController {
   constructor(
@@ -12,7 +13,7 @@ export class SearchController {
     private readonly prisma: PrismaService,
   ) {}
 
-  @Public()
+  @Roles('ADMIN')
   @Post('reindex')
   async reindex() {
     const products = await this.prisma.product.findMany({
@@ -25,11 +26,5 @@ export class SearchController {
 
     await this.searchService.syncAllProducts(products);
     return { synced: products.length };
-  }
-
-  @Public()
-  @Get('test')
-  test() {
-    return { ok: true };
   }
 }

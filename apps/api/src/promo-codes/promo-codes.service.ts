@@ -8,7 +8,13 @@ import { CreatePromoCodeDto, UpdatePromoCodeDto } from './dto/promo-code.dto';
 export class PromoCodesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async applyPromo(code: string, userId: string | null, subtotalCents: number) {
+  // HIGH-07 (Audit-2): productIds allows scope enforcement (applicableProductIds / applicableCategoryIds)
+  async applyPromo(
+    code: string,
+    userId: string | null,
+    subtotalCents: number,
+    productIds: string[] = [],
+  ) {
     const promo = await this.prisma.promoCode.findUnique({
       where: { code: code.toUpperCase() },
     });
@@ -45,6 +51,16 @@ export class PromoCodesService {
       });
       if (userUsages >= promo.maxUsesPerUser) {
         throw new BadRequestException('Vous avez déjà utilisé ce code le maximum de fois autorisé');
+      }
+    }
+
+    // HIGH-07 (Audit-2): enforce product-level scope restrictions
+    if (promo.applicableProductIds.length > 0 && productIds.length > 0) {
+      const hasMatch = productIds.some((id) => promo.applicableProductIds.includes(id));
+      if (!hasMatch) {
+        throw new BadRequestException(
+          "Ce code promo ne s'applique pas aux produits de votre panier",
+        );
       }
     }
 

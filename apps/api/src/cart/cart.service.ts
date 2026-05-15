@@ -158,7 +158,10 @@ export class CartService {
 
   async recover(userId: string, token: string) {
     try {
-      const payload = this.jwt.verify(token);
+      // HIGH-02 (Audit-2): pin algorithm to prevent alg:none downgrade attacks
+      const payload = this.jwt.verify(token, { algorithms: ['RS256'] } as Parameters<
+        typeof this.jwt.verify
+      >[1]);
       const cartId = payload.cartId;
 
       if (!cartId) throw new BadRequestException('Token invalide');

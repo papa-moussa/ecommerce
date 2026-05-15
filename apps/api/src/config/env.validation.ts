@@ -82,6 +82,12 @@ export const envSchema = z
     // Chatbase
     CHATBASE_SYNC_SECRET: z.string().optional().default(''),
 
+    // HIGH-04 (Audit-2): HMAC secret for signed unsubscribe links — required in prod
+    UNSUBSCRIBE_SECRET: z.string().optional().default('dev_unsubscribe_secret_replace_in_prod'),
+
+    // HIGH-01 (Audit-2): HMAC secret for shipping webhook signature verification
+    SHIPPING_WEBHOOK_SECRET: z.string().optional().default(''),
+
     // SEC-013: AES-256-GCM key for encrypting TOTP secrets at rest (64 hex chars = 32 bytes)
     APP_ENCRYPTION_KEY: z
       .string()

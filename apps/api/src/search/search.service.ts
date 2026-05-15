@@ -157,19 +157,45 @@ export class SearchService implements OnModuleInit {
     }
   }
 
-  async recommend(answers: any) {
+  // HIGH-05 (Audit-2): allowlists prevent Algolia filter injection
+  private static readonly VALID_FAMILIES = new Set([
+    'HESPERIDE',
+    'FLORAL',
+    'BOISE',
+    'ORIENTAL',
+    'AMBRE',
+    'FOUGERE',
+    'CHYPRE',
+    'CUIR',
+  ]);
+  private static readonly VALID_OCCASIONS = new Set([
+    'DAILY',
+    'EVENING',
+    'SPECIAL',
+    'SPORT',
+    'OFFICE',
+  ]);
+
+  async recommend(answers: Record<string, unknown>) {
     if (!this.client) return [];
 
     const filters: string[] = [];
 
-    // Mapping des réponses du quiz aux champs Algolia
-    const family = answers.family;
-    const occasion = answers.occasion || answers.occasions;
-    // intensity est récupéré mais pas encore utilisé pour le filtrage
-    // const intensity = answers.intensity || answers.concentration;
+    const family = typeof answers.family === 'string' ? answers.family.toUpperCase() : null;
+    const rawOccasion = answers.occasion ?? answers.occasions;
+    const occasion = typeof rawOccasion === 'string' ? rawOccasion.toUpperCase() : null;
 
-    if (family) filters.push(`family:${family}`);
-    if (occasion) filters.push(`occasions:${occasion}`);
+    // Validate against allowlists before building Algolia filter string
+    if (family && SearchService.VALID_FAMILIES.has(family)) {
+      filters.push(`family:${family}`);
+    } else if (family) {
+      this.logger.warn(`[HIGH-05] Rejected invalid family value: "${family}"`);
+    }
+    if (occasion && SearchService.VALID_OCCASIONS.has(occasion)) {
+      filters.push(`occasions:${occasion}`);
+    } else if (occasion) {
+      this.logger.warn(`[HIGH-05] Rejected invalid occasion value: "${occasion}"`);
+    }
 
     // Pour l'intensité, on peut soit filtrer sur la concentration si on a une correspondance,
     // soit utiliser des tags ou d'autres attributs.

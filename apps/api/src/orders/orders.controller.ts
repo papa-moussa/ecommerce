@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { type User } from '@prisma/client';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -23,12 +23,17 @@ export class OrdersController {
     return this.ordersService.findAllForUser(user.id);
   }
 
+  // HIGH-03 (Audit-2): guest lookup requires email to prevent IDOR enumeration
   @Public()
   @Get(':id')
-  findOne(@CurrentUser() user: User | null, @Param('id') id: string) {
+  findOne(
+    @CurrentUser() user: User | null,
+    @Param('id') id: string,
+    @Query('email') email?: string,
+  ) {
     if (user) {
       return this.ordersService.findOneForUser(user.id, id);
     }
-    return this.ordersService.findOneForGuest(id);
+    return this.ordersService.findOneForGuest(id, email ?? null);
   }
 }

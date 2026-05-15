@@ -1,7 +1,11 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'node:crypto';
+
+import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { type User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import type { AppConfig } from '../config/configuration';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { type CreateUserDto } from './dto/create-user.dto';
@@ -28,7 +32,30 @@ export type PublicUser = Omit<User, 'passwordHash' | 'totpSecret' | 'backupCodes
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService<AppConfig, true>,
+  ) {}
+
+  // HIGH-04 (Audit-2): generate a stateless HMAC token for unsubscribe links
+  generateUnsubscribeToken(email: string): string {
+    const secret = this.config.get('UNSUBSCRIBE_SECRET', { infer: true });
+    return createHmac('sha256', secret).update(email.toLowerCase()).digest('hex');
+  }
+
+  private verifyUnsubscribeToken(email: string, token: string): void {
+    const expected = this.generateUnsubscribeToken(email);
+    let tokenBuf: Buffer;
+    try {
+      tokenBuf = Buffer.from(token, 'hex');
+    } catch {
+      throw new UnauthorizedException('Token de désabonnement invalide');
+    }
+    const expectedBuf = Buffer.from(expected, 'hex');
+    if (tokenBuf.length !== expectedBuf.length || !timingSafeEqual(tokenBuf, expectedBuf)) {
+      throw new UnauthorizedException('Token de désabonnement invalide');
+    }
+  }
 
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { email } });
@@ -67,9 +94,11 @@ export class UsersService {
     });
   }
 
-  async unsubscribe(email: string): Promise<{ success: boolean }> {
+  // HIGH-04 (Audit-2): token required — prevents anyone from silencing any email address
+  async unsubscribe(email: string, token: string): Promise<{ success: boolean }> {
+    this.verifyUnsubscribeToken(email, token);
     await this.prisma.user.updateMany({
-      where: { email },
+      where: { email: email.toLowerCase() },
       data: { marketingOptIn: false },
     });
     return { success: true };

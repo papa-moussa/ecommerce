@@ -21,6 +21,7 @@ import { AdminService } from './admin.service';
 import { AddProductImageDto } from './dto/add-product-image.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { RefundOrderDto } from './dto/refund-order.dto';
+import { ReorderImagesDto } from './dto/reorder-images.dto';
 import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -103,10 +104,11 @@ export class AdminController {
     return this.adminService.addProductImage(id, dto);
   }
 
+  // HIGH-06 (Audit-2): typed DTO with @ArrayMaxSize(100) replaces bare string[]
   @Patch('products/:id/images/reorder')
   @AuditResource({ resource: 'product.image', action: 'product.image.reorder', idParam: 'id' })
-  reorderProductImages(@Param('id') id: string, @Body('ids') ids: string[]) {
-    return this.adminService.reorderProductImages(id, ids);
+  reorderProductImages(@Param('id') id: string, @Body() dto: ReorderImagesDto) {
+    return this.adminService.reorderProductImages(id, dto.ids);
   }
 
   @Delete('products/:id/images/:imageId')
