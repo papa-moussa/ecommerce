@@ -20,6 +20,7 @@ import { AuditLogInterceptor } from '../common/interceptors/audit-log.intercepto
 import { AdminService } from './admin.service';
 import { AddProductImageDto } from './dto/add-product-image.dto';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ListEmailLogsDto } from './dto/list-email-logs.dto';
 import { RefundOrderDto } from './dto/refund-order.dto';
 import { ReorderImagesDto } from './dto/reorder-images.dto';
 import { StockAdjustmentDto } from './dto/stock-adjustment.dto';
@@ -146,8 +147,9 @@ export class AdminController {
     return this.adminService.getOrder(id);
   }
 
+  // MED-01 (Audit-2): typed DTO replaces @Query() query: any
   @Get('email-logs')
-  listEmailLogs(@Query() query: any) {
+  listEmailLogs(@Query() query: ListEmailLogsDto) {
     return this.adminService.listEmailLogs(query);
   }
 

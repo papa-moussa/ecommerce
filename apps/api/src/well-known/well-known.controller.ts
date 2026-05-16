@@ -1,6 +1,6 @@
 import { createPublicKey, type JsonWebKey } from 'crypto';
 
-import { Controller, Get, Logger } from '@nestjs/common';
+import { Controller, Get, Header, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { Public } from '../common/decorators/public.decorator';
@@ -51,7 +51,9 @@ export class WellKnownController {
    * Returns the public key set used to verify JWT access tokens.
    * Cache-friendly: set Cache-Control header to allow CDN/Edge caching.
    */
+  // LOW-05 (Audit-2): static key — cache aggressively to reduce unnecessary fetches
   @Get('jwks.json')
+  @Header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400')
   getJwks(): { keys: JwkKey[] } {
     return this.jwks;
   }

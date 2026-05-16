@@ -35,10 +35,9 @@ const NAV = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // setup-2fa est accessible sans session : l'utilisateur navigue avec un tempToken uniquement
   const isSetup2FAPage = pathname === '/admin/setup-2fa';
 
   useEffect(() => {
@@ -48,41 +47,38 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [user, isLoading, router, isSetup2FAPage]);
 
-  // Rendre la page setup-2fa sans le layout admin (pas de sidebar)
   if (isSetup2FAPage) {
-    return <div className="min-h-screen bg-brand-ivory">{children}</div>;
+    return <div className="min-h-screen bg-notion-bg text-notion-text">{children}</div>;
   }
 
   if (isLoading || !user || user.role !== 'ADMIN') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-brand-ivory/20">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand-gold border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-notion-bg">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-notion-textSecondary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-brand-ivory/10">
+    <div className="flex min-h-screen bg-white text-notion-text font-sans">
       {/* Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: isCollapsed ? 80 : 260 }}
-        className="shrink-0 bg-brand-ink text-brand-ivory flex flex-col relative z-50 shadow-2xl overflow-hidden"
+        animate={{ width: isCollapsed ? 64 : 240 }}
+        className="shrink-0 bg-notion-sidebar border-r border-notion-border flex flex-col relative z-50"
       >
         {/* Toggle Button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-20 h-6 w-6 bg-brand-gold rounded-full flex items-center justify-center text-brand-ink shadow-lg z-10 hover:scale-110 transition-transform"
+          className="absolute -right-3 top-14 h-6 w-6 bg-white border border-notion-border rounded-full flex items-center justify-center text-notion-textSecondary shadow-sm z-10 hover:bg-notion-hover transition-colors"
         >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {isCollapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
 
         {/* Logo Section */}
-        <div
-          className={`p-6 border-b border-white/5 flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}
-        >
-          <div className="h-8 w-8 bg-brand-gold rounded-lg flex items-center justify-center shrink-0">
-            <span className="text-brand-ink font-bold font-serif">M</span>
+        <div className={`h-14 flex items-center gap-2 px-4 ${isCollapsed ? 'justify-center' : ''}`}>
+          <div className="h-6 w-6 bg-notion-text rounded flex items-center justify-center shrink-0">
+            <span className="text-white font-bold text-xs">M</span>
           </div>
           <AnimatePresence>
             {!isCollapsed && (
@@ -90,85 +86,78 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
+                className="flex items-center gap-2 overflow-hidden"
               >
-                <p className="text-white font-serif font-bold text-sm tracking-wide">
-                  Maison Parfum
-                </p>
-                <p className="text-[10px] text-brand-gold font-bold uppercase tracking-[0.2em] opacity-60 leading-none">
-                  Console
-                </p>
+                <span className="font-semibold text-sm truncate">Maison Parfum</span>
+                <span className="text-[10px] bg-notion-hover text-notion-textSecondary px-1.5 py-0.5 rounded font-medium">
+                  Admin
+                </span>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 py-6 space-y-1 px-3 custom-scrollbar overflow-y-auto">
+        <nav className="flex-1 py-4 space-y-0.5 px-3 custom-scrollbar overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all group relative ${
+                className={`flex items-center gap-3 px-2 py-1.5 rounded-md transition-colors group relative ${
                   active
-                    ? 'bg-brand-gold text-brand-ink font-bold'
-                    : 'text-brand-ivory/40 hover:bg-white/5 hover:text-brand-ivory'
+                    ? 'bg-notion-hover text-notion-text font-medium'
+                    : 'text-notion-textSecondary hover:bg-notion-hover/50 hover:text-notion-text'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={isCollapsed ? label : ''}
               >
                 <Icon
-                  size={20}
+                  size={16}
                   className={
                     active
-                      ? 'text-brand-ink'
-                      : 'text-brand-ivory/20 group-hover:text-brand-gold transition-colors'
+                      ? 'text-notion-text'
+                      : 'text-notion-textSecondary group-hover:text-notion-text transition-colors'
                   }
                 />
-                {!isCollapsed && <span className="text-xs tracking-wide">{label}</span>}
-                {active && !isCollapsed && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute left-0 w-1 h-6 bg-brand-ink rounded-r-full"
-                  />
-                )}
+                {!isCollapsed && <span className="text-sm">{label}</span>}
               </Link>
             );
           })}
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/5 space-y-1">
+        <div className="p-3 mt-auto space-y-0.5">
           <Link
             href="/"
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-brand-ivory/40 hover:bg-white/5 hover:text-brand-ivory transition-all ${isCollapsed ? 'justify-center' : ''}`}
+            className={`flex items-center gap-3 px-2 py-1.5 rounded-md text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text transition-colors ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <ExternalLink size={18} />
-            {!isCollapsed && (
-              <span className="text-[11px] font-bold uppercase tracking-widest">Boutique</span>
-            )}
+            <ExternalLink size={16} />
+            {!isCollapsed && <span className="text-sm">Ouvrir la boutique</span>}
           </Link>
+          {/* LOW-01 (Audit-2): logout was a no-op — now actually clears session */}
           <button
             onClick={() => {
-              /* handle logout */
+              logout()
+                .then(() => router.push('/'))
+                .catch(() => {});
             }}
-            className={`flex w-full items-center gap-3 px-3 py-3 rounded-xl text-red-400/60 hover:bg-red-500/10 hover:text-red-400 transition-all ${isCollapsed ? 'justify-center' : ''}`}
+            className={`flex w-full items-center gap-3 px-2 py-1.5 rounded-md text-red-500/80 hover:bg-red-50 hover:text-red-600 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <LogOut size={18} />
-            {!isCollapsed && (
-              <span className="text-[11px] font-bold uppercase tracking-widest">Déconnexion</span>
-            )}
+            <LogOut size={16} />
+            {!isCollapsed && <span className="text-sm">Déconnexion</span>}
           </button>
         </div>
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+      <main className="flex-1 flex flex-col min-h-screen relative overflow-hidden bg-white">
         <div className="flex-1 overflow-auto p-8 lg:p-12">
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.2 }}
+            className="max-w-6xl mx-auto"
           >
             {children}
           </motion.div>

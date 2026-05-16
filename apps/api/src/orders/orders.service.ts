@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { type Order, type OrderItem, type Payment } from '@prisma/client';
 
+import { sanitizeText } from '../common/utils/sanitize';
 import { StripeService } from '../payments/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PromoCodesService } from '../promo-codes/promo-codes.service';
@@ -145,7 +146,8 @@ export class OrdersService {
           promoCode: dto.promoCode ?? null,
           paymentMethod: dto.paymentMethod || 'ONLINE',
           shippingAddress: dto.shippingAddress as object,
-          giftMessage: dto.giftMessage ?? null,
+          // MED-06 (Audit-2): sanitize gift message to prevent stored XSS in admin emails
+          giftMessage: dto.giftMessage ? sanitizeText(dto.giftMessage) : null,
           items: {
             createMany: {
               data: lineItems.map((li) => ({

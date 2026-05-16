@@ -1,5 +1,6 @@
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
+// MED-03 (Audit-2): MaxLength prevents unbounded DB writes
 export class CreateReviewDto {
   @IsInt()
   @Min(1)
@@ -8,8 +9,10 @@ export class CreateReviewDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(120)
   title?: string;
 
   @IsString()
+  @MaxLength(2000)
   comment!: string;
 }

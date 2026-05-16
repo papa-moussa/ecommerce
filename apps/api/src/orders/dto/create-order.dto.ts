@@ -1,7 +1,9 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsEmail,
   IsInt,
+  IsMobilePhone,
   IsOptional,
   IsString,
   MaxLength,
@@ -63,11 +65,12 @@ export class CreateOrderDto {
   @IsString()
   paymentMethod?: 'ONLINE' | 'CASH_ON_DELIVERY';
 
+  // MED-02 (Audit-2): format-validated — prevents garbage data in confirmation emails
   @IsOptional()
-  @IsString()
+  @IsEmail()
   email?: string;
 
   @IsOptional()
-  @IsString()
+  @IsMobilePhone()
   phone?: string;
 }

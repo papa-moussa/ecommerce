@@ -88,6 +88,9 @@ export const envSchema = z
     // HIGH-01 (Audit-2): HMAC secret for shipping webhook signature verification
     SHIPPING_WEBHOOK_SECRET: z.string().optional().default(''),
 
+    // MED-09 (Audit-2): token to protect the detailed /health endpoint from public access
+    HEALTH_TOKEN: z.string().optional().default(''),
+
     // SEC-013: AES-256-GCM key for encrypting TOTP secrets at rest (64 hex chars = 32 bytes)
     APP_ENCRYPTION_KEY: z
       .string()
@@ -113,6 +116,27 @@ export const envSchema = z
           path: ['STRIPE_SECRET_KEY'],
           message:
             'STRIPE_SECRET_KEY must be a live key (sk_live_*) in production. Test keys cannot process real payments.',
+        });
+      }
+
+      // MED-10 (Audit-2): localhost CORS in production would accept cross-origin requests from dev
+      if (data.CORS_ORIGIN.includes('localhost')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['CORS_ORIGIN'],
+          message:
+            'CORS_ORIGIN cannot contain "localhost" in production. Set the real HTTPS domain in Doppler.',
+        });
+      }
+
+      // LOW-07 (Audit-2): JWT_ACCESS_SECRET is deprecated — warn if still set to non-empty value
+      // (it means code may still be using it for signing, which is now handled by RS256 keys)
+      if (data.JWT_ACCESS_SECRET !== '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['JWT_ACCESS_SECRET'],
+          message:
+            'JWT_ACCESS_SECRET is deprecated (replaced by RS256 key pair). Remove it from Doppler to avoid accidental usage.',
         });
       }
     }

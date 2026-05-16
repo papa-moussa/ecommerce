@@ -159,10 +159,13 @@ export class AdminService {
     const cloudName = this.config.get('CLOUDINARY_CLOUD_NAME', { infer: true });
     const apiKey = this.config.get('CLOUDINARY_API_KEY', { infer: true });
 
-    const toSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    // MED-05 (Audit-2): restrict allowed formats and file size server-side via signed params
+    const allowedFormats = 'jpg,png,webp,gif';
+    const maxFileSize = 5_242_880; // 5 MB
+    const toSign = `allowed_formats=${allowedFormats}&folder=${folder}&max_file_size=${maxFileSize}&timestamp=${timestamp}${apiSecret}`;
     const signature = createHash('sha1').update(toSign).digest('hex');
 
-    return { signature, timestamp, apiKey, cloudName, folder };
+    return { signature, timestamp, apiKey, cloudName, folder, allowedFormats, maxFileSize };
   }
 
   // ---------------------------------------------------------------------------
@@ -472,6 +475,13 @@ export class AdminService {
     const payment = order.payments.find((p) => p.status === 'SUCCEEDED');
     if (!payment?.stripePaymentIntentId) {
       throw new BadRequestException('Aucun paiement éligible au remboursement.');
+    }
+
+    // LOW-04 (Audit-2): cap refund amount to avoid exceeding original payment
+    if (dto.amountCents && dto.amountCents > payment.amountCents) {
+      throw new BadRequestException(
+        `Remboursement (${dto.amountCents}¢) supérieur au paiement original (${payment.amountCents}¢)`,
+      );
     }
 
     const refund = await this.stripeService.client.refunds.create({

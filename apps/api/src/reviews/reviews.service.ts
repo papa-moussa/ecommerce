@@ -41,7 +41,8 @@ export class ReviewsService {
         productId,
         userId,
         rating: dto.rating,
-        title: dto.title,
+        // LOW-06 (Audit-2): sanitize title too, not just comment
+        title: dto.title ? sanitizeText(dto.title) : undefined,
         comment: sanitizeText(dto.comment),
       },
     });
