@@ -86,9 +86,6 @@ function Setup2FAForm() {
           json: { tempToken, code },
         });
         setBackupCodes(data.backupCodes);
-        if (data.accessToken) {
-          sessionStorage.setItem('access_token', data.accessToken);
-        }
       } else {
         const data = await apiFetch<{ backupCodes: string[] }>('/auth/2fa/enable', {
           method: 'POST',

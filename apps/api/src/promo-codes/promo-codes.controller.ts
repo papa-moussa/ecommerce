@@ -37,7 +37,10 @@ export class PromoCodesController {
 
   @Public()
   @Post('cart/apply-promo')
-  async applyPromo(@Body() applyPromoDto: ApplyPromoDto, @CurrentUser() user: any) {
+  async applyPromo(
+    @Body() applyPromoDto: ApplyPromoDto,
+    @CurrentUser() user: { id: string } | null,
+  ) {
     return this.promoCodesService.applyPromo(
       applyPromoDto.code,
       user?.id || null,
