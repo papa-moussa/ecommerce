@@ -5,5 +5,5 @@ export class ReorderImagesDto {
   @IsArray()
   @IsString({ each: true })
   @ArrayMaxSize(100)
-  ids: string[];
+  ids!: string[];
 }
