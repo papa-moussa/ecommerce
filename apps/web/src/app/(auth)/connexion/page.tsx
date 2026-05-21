@@ -24,13 +24,12 @@ function ConnexionPageContent(): JSX.Element {
     try {
       const result = await login(form);
 
+      // Admins always land on the admin console, whatever the redirect param says.
+      const adminDest = result.role === 'ADMIN' ? '/admin' : redirect;
+
       if (result.requires2FA) {
-        const dest =
-          result.role === 'ADMIN' && (redirect === '/compte' || !explicitRedirect)
-            ? '/admin'
-            : redirect;
         router.push(
-          `/verify-2fa?t=${encodeURIComponent(result.tempToken!)}&redirect=${encodeURIComponent(dest)}`,
+          `/verify-2fa?t=${encodeURIComponent(result.tempToken!)}&redirect=${encodeURIComponent(adminDest)}`,
         );
         return;
       }
@@ -38,11 +37,7 @@ function ConnexionPageContent(): JSX.Element {
         router.push(`/admin/setup-2fa?t=${encodeURIComponent(result.tempToken!)}`);
         return;
       }
-      const dest =
-        result.role === 'ADMIN' && (redirect === '/compte' || !explicitRedirect)
-          ? '/admin'
-          : redirect;
-      router.push(dest);
+      router.push(adminDest);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de connexion.');
     } finally {
