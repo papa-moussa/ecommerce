@@ -101,6 +101,7 @@ export class TotpService {
       // main JwtStrategy even if the twofa claim check were bypassed.
       payload = this.jwt.verify<TempTokenPayload>(tempToken, {
         secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
+        algorithms: ['HS256'],
       });
     } catch {
       throw new UnauthorizedException('Temp token invalide ou expiré.');
@@ -182,8 +183,10 @@ export class TotpService {
     // This makes the temp token cryptographically incompatible with the
     // access token verified by JwtStrategy — a tempToken presented to any
     // protected endpoint will always fail signature verification.
+    // SEC-002: HS256 must be explicit — JwtModule defaults to RS256 (asymmetric).
     return this.jwt.sign(payload, {
       secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
+      algorithm: 'HS256',
       expiresIn: TEMP_TOKEN_TTL_SECONDS,
     });
   }
@@ -197,6 +200,7 @@ export class TotpService {
       // SEC-002: use JWT_TEMP_SECRET (distinct from JWT_ACCESS_SECRET)
       const payload = this.jwt.verify<TempTokenPayload>(tempToken, {
         secret: this.config.get('JWT_TEMP_SECRET', { infer: true }),
+        algorithms: ['HS256'],
       });
       if (!payload.twofa) throw new UnauthorizedException();
       return payload;

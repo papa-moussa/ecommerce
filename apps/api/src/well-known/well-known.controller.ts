@@ -27,10 +27,7 @@ export class WellKnownController {
   private readonly jwks: { keys: JwkKey[] };
 
   constructor(config: ConfigService<AppConfig, true>) {
-    // ConfigService reads from process.env (bypassing Zod transforms), so the
-    // PEM may contain literal '\n' sequences instead of real newlines. Replace
-    // them here before passing to Node.js createPublicKey, which is strict.
-    const publicKeyPem = config.get('JWT_PUBLIC_KEY', { infer: true }).replace(/\\n/g, '\n');
+    const publicKeyPem = config.get('JWT_PUBLIC_KEY', { infer: true });
 
     // Export the RSA public key in JWK format using Node.js built-in crypto.
     const cryptoKey = createPublicKey(publicKeyPem);
