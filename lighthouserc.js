@@ -2,10 +2,7 @@
 module.exports = {
   ci: {
     collect: {
-      url: [
-        'http://localhost:3002/',
-        'http://localhost:3002/produits',
-      ],
+      url: ['http://localhost:3002/', 'http://localhost:3002/produits'],
       numberOfRuns: 1,
       settings: {
         // Simulate mobile (Lighthouse default audit device)
@@ -31,12 +28,12 @@ module.exports = {
         // Specific SEO checks
         'document-title': 'error',
         'meta-description': 'error',
-        'canonical': 'warn',
+        canonical: 'warn',
         'structured-data': 'warn',
         // Accessibility
         'color-contrast': 'error',
         'image-alt': 'error',
-        'label': 'error',
+        label: 'error',
       },
     },
     upload: {

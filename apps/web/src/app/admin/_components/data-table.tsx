@@ -40,11 +40,11 @@ export function DataTable<TData>({
       <div className="admin-card overflow-hidden transition-shadow hover:shadow-md">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-sm">
-            <thead className="border-b border-brand-ink/[0.06]">
+            <thead className="border-b border-notion-border bg-notion-hover/30">
               {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id} className="bg-brand-ivory/30">
+                <tr key={hg.id}>
                   {hg.headers.map((h) => (
-                    <th key={h.id} className="px-6 py-3.5 text-left admin-label">
+                    <th key={h.id} className="px-5 py-3 text-left admin-label">
                       {h.isPlaceholder
                         ? null
                         : flexRender(h.column.columnDef.header, h.getContext())}
@@ -53,23 +53,23 @@ export function DataTable<TData>({
                 </tr>
               ))}
             </thead>
-            <tbody className="divide-y divide-brand-ink/[0.04]">
+            <tbody className="divide-y divide-notion-border">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     {columns.map((_, j) => (
-                      <td key={j} className="px-6 py-4">
-                        <Skeleton className="h-4 w-full rounded-lg opacity-[0.15]" />
+                      <td key={j} className="px-5 py-4">
+                        <Skeleton className="h-4 w-full rounded-md opacity-[0.15]" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-6 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3 text-brand-ink/20">
+                  <td colSpan={columns.length} className="px-5 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3 text-notion-textSecondary/50">
                       <SearchX size={36} strokeWidth={1.5} />
-                      <p className="text-sm font-medium text-brand-ink/30">
+                      <p className="text-sm font-medium text-notion-textSecondary/70">
                         Aucun résultat trouvé.
                       </p>
                     </div>
@@ -79,10 +79,10 @@ export function DataTable<TData>({
                 table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="group hover:bg-brand-gold/[0.04] transition-colors duration-150"
+                    className="group hover:bg-notion-hover/50 transition-colors duration-150"
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4 align-middle">
+                      <td key={cell.id} className="px-5 py-4 align-middle">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -94,19 +94,19 @@ export function DataTable<TData>({
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-brand-ink/[0.06] bg-brand-ivory/20">
-          <div className="flex items-center gap-1.5 text-xs text-brand-ink/40">
-            <span className="font-bold text-brand-ink tabular-nums">{total}</span>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-3 border-t border-notion-border bg-notion-hover/30">
+          <div className="flex items-center gap-1.5 text-xs text-notion-textSecondary">
+            <span className="font-medium text-notion-text tabular-nums">{total}</span>
             <span>résultats</span>
           </div>
 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <p className="text-xs text-brand-ink/40 font-medium">Lignes</p>
+              <p className="text-xs text-notion-textSecondary font-medium">Lignes</p>
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-                className="h-8 w-16 rounded-lg border border-brand-ink/[0.08] bg-white text-xs font-bold text-brand-ink focus:border-brand-gold focus:ring-0 outline-none px-2"
+                className="h-8 w-16 rounded-md border border-notion-border bg-white text-xs font-medium text-notion-text focus:border-notion-textSecondary focus:ring-0 outline-none px-2 cursor-pointer"
               >
                 {[10, 20, 30, 40, 50].map((size) => (
                   <option key={size} value={size}>
@@ -116,7 +116,7 @@ export function DataTable<TData>({
               </select>
             </div>
 
-            <div className="text-xs font-bold text-brand-ink/40 tabular-nums">
+            <div className="text-xs font-medium text-notion-textSecondary tabular-nums">
               {pageIndex} / {pageCount}
             </div>
 
@@ -143,7 +143,7 @@ export function DataTable<TData>({
                   key={idx}
                   onClick={onClick}
                   disabled={disabled || isLoading}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-brand-ink/[0.08] bg-white text-brand-ink/40 hover:bg-brand-gold hover:text-brand-ivory hover:border-brand-gold disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-notion-border bg-white text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <Icon size={14} />
                 </button>

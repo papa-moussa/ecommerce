@@ -1,4 +1,9 @@
-import { PrismaClient, type Occasion, type Concentration, type OlfactoryFamily } from '@prisma/client';
+import {
+  PrismaClient,
+  type Occasion,
+  type Concentration,
+  type OlfactoryFamily,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 

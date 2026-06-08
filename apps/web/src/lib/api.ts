@@ -176,6 +176,8 @@ export interface CreateOrderData {
   giftMessage?: string;
   promoCode?: string;
   paymentMethod?: 'ONLINE' | 'CASH_ON_DELIVERY';
+  email?: string;
+  phone?: string;
 }
 
 export interface CreateOrderResult {

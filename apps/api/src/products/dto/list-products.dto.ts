@@ -2,7 +2,6 @@ import { Gender } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsPositive, IsString, Max, Min } from 'class-validator';
 
-
 export type ProductSort = 'price_asc' | 'price_desc' | 'newest' | 'featured';
 
 export class ListProductsDto {

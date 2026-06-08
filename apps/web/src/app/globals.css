@@ -30,37 +30,37 @@ body {
   @apply bg-brand-gold/40;
 }
 
-/* ── Admin surface tokens ─────────────────────────── */
+/* ── Admin surface tokens (Notion Style) ─────────────────────────── */
 @layer components {
   .admin-card {
-    @apply bg-white rounded-2xl border border-brand-ink/[0.06] shadow-sm;
+    @apply bg-white rounded-lg border border-notion-border shadow-sm;
   }
   .admin-label {
-    @apply text-[10px] font-bold uppercase tracking-[0.12em] text-brand-ink/40;
+    @apply text-xs font-medium text-notion-textSecondary;
   }
   .admin-section-title {
-    @apply text-sm font-bold text-brand-ink/60 uppercase tracking-widest;
+    @apply text-sm font-semibold text-notion-text mb-4;
   }
   .admin-input {
-    @apply w-full bg-brand-ivory/30 border border-brand-ink/[0.08] rounded-xl px-4 py-3 text-sm
-           placeholder:text-brand-ink/30 focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/[0.08]
-           outline-none transition-all;
+    @apply w-full bg-transparent border border-notion-border rounded-md px-3 py-2 text-sm text-notion-text
+           placeholder:text-notion-textSecondary/50 focus:border-notion-textSecondary focus:ring-1 focus:ring-notion-textSecondary
+           outline-none transition-all hover:bg-notion-hover/50;
   }
   .admin-select {
-    @apply w-full bg-brand-ivory/30 border border-brand-ink/[0.08] rounded-xl px-4 py-3 text-sm
-           focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/[0.08] outline-none
-           appearance-none transition-all;
+    @apply w-full bg-transparent border border-notion-border rounded-md px-3 py-2 text-sm text-notion-text
+           focus:border-notion-textSecondary focus:ring-1 focus:ring-notion-textSecondary outline-none
+           appearance-none transition-all hover:bg-notion-hover/50 cursor-pointer;
   }
   .admin-btn-primary {
-    @apply flex items-center gap-2 px-6 py-2.5 text-xs font-bold uppercase tracking-widest
-           bg-brand-ink text-brand-ivory rounded-xl hover:bg-brand-gold transition-all
-           shadow-lg shadow-brand-ink/10 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+           bg-notion-text text-white rounded-md hover:bg-notion-text/90 transition-colors
+           shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .admin-btn-ghost {
-    @apply flex items-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest
-           text-brand-ink/40 hover:text-brand-ink hover:bg-brand-ivory/60 rounded-xl transition-all;
+    @apply flex items-center gap-2 px-3 py-1.5 text-sm font-medium
+           text-notion-textSecondary hover:bg-notion-hover hover:text-notion-text rounded-md transition-colors;
   }
   .admin-badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border;
+    @apply inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-notion-hover text-notion-textSecondary border border-notion-border;
   }
 }

@@ -18,6 +18,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  userId?: string | null;
   status: string;
   totalCents: number;
   currency: string;

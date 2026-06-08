@@ -15,12 +15,12 @@ export function AdminCard({ children, className, title, headerAction, noPadding 
   return (
     <div className={cn('admin-card', className)}>
       {(title || headerAction) && (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-brand-ink/[0.06]">
-          {title && <p className="admin-section-title">{title}</p>}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-notion-border">
+          {title && <p className="admin-section-title !mb-0 text-sm">{title}</p>}
           {headerAction && <div>{headerAction}</div>}
         </div>
       )}
-      {noPadding ? children : <div className="p-6">{children}</div>}
+      {noPadding ? children : <div className="p-5">{children}</div>}
     </div>
   );
 }

@@ -102,11 +102,6 @@ const REGIONS: Record<string, string[]> = {
   GM: ['Banjul', 'Kanifing', 'Brikama', 'Mansa Konko', 'Kerewan', 'Janjanbureh', 'Basse Santa Su'],
 };
 
-const COUNTRY_CODES = [
-  { code: '+221', name: 'SN', iso: 'SN' },
-  { code: '+220', name: 'GM', iso: 'GM' },
-];
-
 const DEFAULT_ADDRESS: ShippingAddress = {
   line1: '',
   line2: '',

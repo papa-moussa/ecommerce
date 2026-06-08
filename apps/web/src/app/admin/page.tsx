@@ -49,15 +49,15 @@ export default function AdminDashboardPage() {
         title="Dashboard"
         description="Vue d'ensemble de votre activité"
         action={
-          <div className="flex items-center gap-1 bg-brand-ivory/40 p-1 rounded-xl border border-brand-ink/[0.06]">
+          <div className="flex items-center gap-1 bg-notion-hover/50 p-1 rounded-md border border-notion-border">
             {PERIODS.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setPeriod(p.id)}
-                className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
+                className={`px-3 py-1 text-xs font-medium rounded transition-all ${
                   period === p.id
-                    ? 'bg-brand-ink text-brand-ivory shadow-lg shadow-brand-ink/20'
-                    : 'text-brand-ink/40 hover:text-brand-ink hover:bg-brand-ivory'
+                    ? 'bg-white text-notion-text shadow-sm border border-notion-border/50'
+                    : 'text-notion-textSecondary hover:text-notion-text hover:bg-notion-hover'
                 }`}
               >
                 {p.label}
@@ -78,7 +78,7 @@ export default function AdminDashboardPage() {
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="admin-card p-6 h-28 animate-pulse bg-brand-ivory/40" />
+            <div key={i} className="admin-card p-5 h-28 animate-pulse bg-notion-hover/30" />
           ))}
         </div>
       ) : overview ? (
@@ -89,8 +89,8 @@ export default function AdminDashboardPage() {
               value={fmtAdmin(overview.totalRevenueCents)}
               sub={`sur ${period}`}
               icon={TrendingUp}
-              iconColor="bg-brand-gold/10"
-              iconTextColor="text-brand-gold"
+              iconColor="bg-emerald-50"
+              iconTextColor="text-emerald-600"
             />
             <StatCard
               label="Commandes"
@@ -112,32 +112,34 @@ export default function AdminDashboardPage() {
               value={overview.lowStock.length}
               sub={overview.lowStock.length > 0 ? 'produits sous seuil' : 'Tout OK'}
               icon={Package}
-              iconColor={overview.lowStock.length > 0 ? 'bg-amber-50' : 'bg-emerald-50'}
-              iconTextColor={overview.lowStock.length > 0 ? 'text-amber-500' : 'text-emerald-500'}
+              iconColor={overview.lowStock.length > 0 ? 'bg-amber-50' : 'bg-notion-hover'}
+              iconTextColor={
+                overview.lowStock.length > 0 ? 'text-amber-500' : 'text-notion-textSecondary'
+              }
             />
           </div>
 
           {/* Revenue Chart */}
           <AdminCard title={`Chiffre d'affaires — ${period}`} className="mb-6" noPadding>
-            <div className="p-6">
+            <div className="p-5">
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={series} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#C9A961" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#C9A961" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#37352F" stopOpacity={0.1} />
+                      <stop offset="95%" stopColor="#37352F" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#0F0F1008" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#E9E9E7" vertical={false} />
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 10, fill: '#0F0F1040', fontFamily: 'Inter' }}
+                    tick={{ fontSize: 11, fill: '#787774', fontFamily: 'Inter' }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
                     tickFormatter={(v: number) => `${(v / 100).toFixed(0)}€`}
-                    tick={{ fontSize: 10, fill: '#0F0F1040', fontFamily: 'Inter' }}
+                    tick={{ fontSize: 11, fill: '#787774', fontFamily: 'Inter' }}
                     axisLine={false}
                     tickLine={false}
                     width={52}
@@ -145,30 +147,30 @@ export default function AdminDashboardPage() {
                   <Tooltip
                     formatter={(v) => [fmtAdmin(v as number), 'CA']}
                     contentStyle={{
-                      background: '#0F0F10',
-                      border: 'none',
-                      borderRadius: '12px',
-                      color: '#F5F1E8',
+                      background: '#FFFFFF',
+                      border: '1px solid #E9E9E7',
+                      borderRadius: '8px',
+                      color: '#37352F',
                       fontSize: '12px',
-                      padding: '8px 14px',
+                      padding: '8px 12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
                     }}
                     labelStyle={{
-                      color: '#C9A961',
-                      fontWeight: 700,
-                      fontSize: '10px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
+                      color: '#787774',
+                      fontWeight: 500,
+                      fontSize: '11px',
+                      marginBottom: '4px',
                     }}
-                    cursor={{ stroke: '#C9A961', strokeWidth: 1, strokeDasharray: '4 4' }}
+                    cursor={{ stroke: '#E9E9E7', strokeWidth: 1, strokeDasharray: '4 4' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="#C9A961"
+                    stroke="#37352F"
                     strokeWidth={2}
                     fill="url(#revenueGradient)"
                     dot={false}
-                    activeDot={{ r: 4, fill: '#C9A961', stroke: '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 4, fill: '#37352F', stroke: '#fff', strokeWidth: 2 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -179,20 +181,20 @@ export default function AdminDashboardPage() {
           <AdminCard title="Top produits" noPadding className="mb-6">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-brand-ink/[0.06]">
-                  <th className="px-6 py-3 text-left admin-label">Produit</th>
-                  <th className="px-6 py-3 text-right admin-label">Qté</th>
-                  <th className="px-6 py-3 text-right admin-label">CA</th>
+                <tr className="border-b border-notion-border bg-notion-hover/30">
+                  <th className="px-5 py-2.5 text-left admin-label">Produit</th>
+                  <th className="px-5 py-2.5 text-right admin-label">Qté</th>
+                  <th className="px-5 py-2.5 text-right admin-label">CA</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-brand-ink/[0.04]">
+              <tbody className="divide-y divide-notion-border">
                 {overview.topProducts.map((p) => (
-                  <tr key={p.productId} className="hover:bg-brand-gold/[0.03] transition-colors">
-                    <td className="px-6 py-3.5 font-medium text-brand-ink">{p.productName}</td>
-                    <td className="px-6 py-3.5 text-right font-bold text-brand-ink/60 tabular-nums">
+                  <tr key={p.productId} className="hover:bg-notion-hover/50 transition-colors">
+                    <td className="px-5 py-3 font-medium text-notion-text">{p.productName}</td>
+                    <td className="px-5 py-3 text-right text-notion-textSecondary tabular-nums">
                       {p._sum.quantity}
                     </td>
-                    <td className="px-6 py-3.5 text-right font-bold text-brand-ink tabular-nums">
+                    <td className="px-5 py-3 text-right font-medium text-notion-text tabular-nums">
                       {fmtAdmin(p._sum.totalCents)}
                     </td>
                   </tr>
@@ -203,22 +205,22 @@ export default function AdminDashboardPage() {
 
           {/* Low Stock Alert */}
           {overview.lowStock.length > 0 && (
-            <AdminCard className="border-amber-200 bg-amber-50/60">
+            <AdminCard className="border-amber-200/50 bg-amber-50/50">
               <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={18} className="text-amber-600" />
+                <div className="h-8 w-8 rounded-md bg-amber-100/80 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={16} className="text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-amber-800 mb-2">
+                  <p className="text-sm font-medium text-amber-800 mb-2">
                     {overview.lowStock.length} produit{overview.lowStock.length > 1 ? 's' : ''} en
                     stock faible
                   </p>
                   <ul className="space-y-1">
                     {overview.lowStock.map((p) => (
-                      <li key={p.id} className="text-sm text-amber-700">
-                        <span className="font-medium">{p.name}</span>
-                        <span className="text-amber-600/70 ml-2">— {p.stock} restant(s)</span>
-                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">
+                      <li key={p.id} className="text-sm text-amber-700/80">
+                        <span className="font-medium text-amber-700">{p.name}</span>
+                        <span className="ml-2">— {p.stock} restant(s)</span>
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-amber-100/50 text-amber-700 border border-amber-200/50">
                           {p.stockStatus}
                         </span>
                       </li>

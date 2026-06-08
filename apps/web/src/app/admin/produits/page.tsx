@@ -282,13 +282,13 @@ export default function AdminProductsPage() {
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           {row.original.images?.[0]?.url && (
-            <div className="relative h-10 w-10 rounded-lg bg-brand-ivory overflow-hidden border border-brand-ink/5 shrink-0">
+            <div className="relative h-10 w-10 rounded-md bg-notion-hover overflow-hidden border border-notion-border shrink-0">
               <Image src={row.original.images[0].url} alt="" fill className="object-cover" />
             </div>
           )}
           <div>
-            <p className="font-bold text-brand-ink">{row.original.name}</p>
-            <p className="text-[10px] uppercase tracking-widest text-brand-ink/40 font-semibold">
+            <p className="font-medium text-notion-text">{row.original.name}</p>
+            <p className="text-xs text-notion-textSecondary">
               {row.original.brand} · {row.original.sku}
             </p>
           </div>
@@ -299,7 +299,7 @@ export default function AdminProductsPage() {
       accessorKey: 'priceCents',
       header: 'Prix',
       cell: ({ getValue }) => (
-        <span className="font-medium text-brand-ink">{fmtAdmin(getValue<number>())}</span>
+        <span className="font-medium text-notion-text">{fmtAdmin(getValue<number>())}</span>
       ),
     },
     {
@@ -307,10 +307,10 @@ export default function AdminProductsPage() {
       header: 'Stock',
       cell: ({ row }) => (
         <div className="flex flex-col gap-0.5">
-          <span className={`text-xs font-bold ${STOCK_COLORS[row.original.stockStatus] ?? ''}`}>
+          <span className={`text-sm font-medium ${STOCK_COLORS[row.original.stockStatus] ?? ''}`}>
             {row.original.stock} unités
           </span>
-          <span className="text-[10px] text-brand-ink/30 font-medium">
+          <span className="text-xs text-notion-textSecondary">
             {row.original.stockStatus === 'IN_STOCK'
               ? 'En stock'
               : row.original.stockStatus === 'LOW_STOCK'
@@ -325,10 +325,10 @@ export default function AdminProductsPage() {
       header: 'Statut',
       cell: ({ getValue }) => (
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+          className={`inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${
             getValue<boolean>()
-              ? 'bg-green-50 text-green-700 border border-green-100'
-              : 'bg-brand-ink/5 text-brand-ink/30 border border-brand-ink/[0.06]'
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+              : 'bg-notion-hover text-notion-textSecondary border border-notion-border'
           }`}
         >
           {getValue<boolean>() ? 'Actif' : 'Inactif'}
@@ -372,7 +372,7 @@ export default function AdminProductsPage() {
                 })),
               });
             }}
-            className="p-2 text-brand-ink/40 hover:text-brand-gold hover:bg-brand-gold/5 rounded-lg transition-all"
+            className="p-2 text-notion-textSecondary hover:text-notion-text hover:bg-notion-hover rounded-md transition-colors"
             title="Modifier"
           >
             <Pencil size={16} />
@@ -388,14 +388,14 @@ export default function AdminProductsPage() {
                 variantId: p.variants?.[0]?.id || '',
               });
             }}
-            className="p-2 text-brand-ink/40 hover:text-brand-gold hover:bg-brand-gold/5 rounded-lg transition-all"
+            className="p-2 text-notion-textSecondary hover:text-notion-text hover:bg-notion-hover rounded-md transition-colors"
             title="Ajuster Stock"
           >
             <Box size={16} />
           </button>
           <button
             onClick={() => setDeleteId(row.original.id)}
-            className="p-2 text-brand-ink/40 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+            className="p-2 text-notion-textSecondary hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
             title="Supprimer"
           >
             <Trash2 size={16} />
@@ -415,9 +415,9 @@ export default function AdminProductsPage() {
               setShowCreateForm(true);
               setProductForm(emptyForm);
             }}
-            className="flex items-center gap-2 px-6 py-2.5 text-sm bg-brand-ink text-brand-ivory rounded-xl hover:bg-brand-gold transition-all shadow-lg shadow-brand-ink/10 font-bold tracking-wide active:scale-95"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-notion-text text-white rounded-md hover:bg-notion-text/90 transition-colors shadow-sm"
           >
-            <span className="text-lg">+</span>
+            <Plus size={16} />
             Nouveau produit
           </button>
         }
@@ -459,16 +459,16 @@ export default function AdminProductsPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-white/20"
+              className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col shadow-xl border border-notion-border"
             >
               {/* Header */}
-              <div className="p-6 border-b border-brand-ink/5 flex justify-between items-center bg-brand-ivory/30">
+              <div className="px-6 py-4 border-b border-notion-border flex justify-between items-center bg-white">
                 <div>
-                  <h2 className="text-xl font-serif text-brand-ink">
+                  <h2 className="text-lg font-semibold text-notion-text">
                     {editTarget ? 'Modifier le produit' : 'Nouveau produit'}
                   </h2>
-                  <p className="text-xs text-brand-ink/40 font-medium">
-                    Configurez les détails de votre signature olfactive.
+                  <p className="text-sm text-notion-textSecondary">
+                    Configurez les détails du produit.
                   </p>
                 </div>
                 <button
@@ -476,14 +476,14 @@ export default function AdminProductsPage() {
                     setShowCreateForm(false);
                     setEditTarget(null);
                   }}
-                  className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-sm hover:bg-brand-gold hover:text-brand-ivory transition-all text-brand-ink/40"
+                  className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-notion-hover transition-colors text-notion-textSecondary"
                 >
                   ✕
                 </button>
               </div>
 
               {/* Tabs Navigation */}
-              <div className="flex border-b border-brand-ink/5 px-6 bg-brand-ivory/10">
+              <div className="flex border-b border-notion-border px-6 bg-notion-hover/30 gap-4">
                 {[
                   { id: 'general', label: 'Général' },
                   { id: 'marketing', label: 'Marketing' },
@@ -495,17 +495,17 @@ export default function AdminProductsPage() {
                     onClick={() =>
                       setActiveTab(t.id as 'general' | 'marketing' | 'stocks' | 'galerie')
                     }
-                    className={`px-4 py-4 text-xs font-bold uppercase tracking-widest transition-all relative ${
+                    className={`py-3 text-sm font-medium transition-colors relative ${
                       activeTab === t.id
-                        ? 'text-brand-gold'
-                        : 'text-brand-ink/30 hover:text-brand-ink'
+                        ? 'text-notion-text'
+                        : 'text-notion-textSecondary hover:text-notion-text'
                     }`}
                   >
                     {t.label}
                     {activeTab === t.id && (
                       <motion.div
                         layoutId="activeTab"
-                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-gold"
+                        className="absolute bottom-0 left-0 right-0 h-0.5 bg-notion-textSecondary"
                       />
                     )}
                   </button>
@@ -541,7 +541,7 @@ export default function AdminProductsPage() {
                               setProductForm((f) => ({ ...f, [key]: e.target.value }))
                             }
                             placeholder={placeholder}
-                            className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/5 transition-all outline-none"
+                            className="admin-input"
                           />
                         </div>
                       ))}
@@ -557,7 +557,7 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setProductForm((f) => ({ ...f, categoryId: e.target.value }))
                           }
-                          className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/5 transition-all outline-none appearance-none"
+                          className="admin-input appearance-none"
                         >
                           <option value="">Sélectionner une catégorie</option>
                           {categories.map((c) => (
@@ -576,7 +576,7 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setProductForm((f) => ({ ...f, gender: e.target.value }))
                           }
-                          className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/5 transition-all outline-none appearance-none"
+                          className="admin-input appearance-none"
                         >
                           <option value="HOMME">Homme</option>
                           <option value="FEMME">Femme</option>
@@ -628,7 +628,7 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setProductForm((f) => ({ ...f, concentration: e.target.value }))
                           }
-                          className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/5 transition-all outline-none"
+                          className="admin-input"
                         >
                           <option value="">Sélectionner</option>
                           {[
@@ -654,7 +654,7 @@ export default function AdminProductsPage() {
                           onChange={(e) =>
                             setProductForm((f) => ({ ...f, family: e.target.value }))
                           }
-                          className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold focus:ring-4 focus:ring-brand-gold/5 transition-all outline-none"
+                          className="admin-input"
                         >
                           <option value="">Sélectionner</option>
                           {[
@@ -685,7 +685,7 @@ export default function AdminProductsPage() {
                           setProductForm((f) => ({ ...f, description: e.target.value }))
                         }
                         rows={3}
-                        className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold transition-all outline-none resize-none"
+                        className="admin-input resize-none"
                       />
                     </div>
 
@@ -699,7 +699,7 @@ export default function AdminProductsPage() {
                           setProductForm((f) => ({ ...f, storyTelling: e.target.value }))
                         }
                         rows={4}
-                        className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold transition-all outline-none resize-none"
+                        className="admin-input resize-none"
                       />
                     </div>
 
@@ -724,7 +724,7 @@ export default function AdminProductsPage() {
                                 setProductForm((f) => ({ ...f, [key]: e.target.value }))
                               }
                               placeholder="Note 1, Note 2..."
-                              className="w-full border-brand-ink/5 bg-white rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-brand-gold/10 transition-all outline-none"
+                              className="admin-input text-xs"
                             />
                           </div>
                         ))}
@@ -777,7 +777,7 @@ export default function AdminProductsPage() {
                                 );
                                 setProductForm({ ...productForm, variants: newVariants });
                               }}
-                              className="w-full border-brand-ink/5 bg-white rounded-xl px-3 py-2.5 text-sm focus:border-brand-gold outline-none"
+                              className="admin-input"
                               placeholder="Ex: 50"
                             />
                           </div>
@@ -794,7 +794,7 @@ export default function AdminProductsPage() {
                                 );
                                 setProductForm({ ...productForm, variants: newVariants });
                               }}
-                              className="w-full border-brand-ink/5 bg-white rounded-xl px-3 py-2.5 text-sm focus:border-brand-gold outline-none"
+                              className="admin-input"
                             />
                           </div>
                           <div className="col-span-3 space-y-1.5">
@@ -810,7 +810,7 @@ export default function AdminProductsPage() {
                                 );
                                 setProductForm({ ...productForm, variants: newVariants });
                               }}
-                              className="w-full border-brand-ink/5 bg-white rounded-xl px-3 py-2.5 text-sm focus:border-brand-gold outline-none"
+                              className="admin-input"
                             />
                           </div>
                           <div className="col-span-2 flex justify-center pb-2">
@@ -950,7 +950,7 @@ export default function AdminProductsPage() {
                       onChange={(e) =>
                         setStockForm((f) => ({ ...f, delta: parseInt(e.target.value, 10) || 0 }))
                       }
-                      className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm font-bold text-brand-ink focus:border-brand-gold outline-none text-center"
+                      className="admin-input text-center font-medium"
                       placeholder="0"
                     />
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -973,7 +973,7 @@ export default function AdminProductsPage() {
                   <select
                     value={stockForm.reason}
                     onChange={(e) => setStockForm((f) => ({ ...f, reason: e.target.value }))}
-                    className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold outline-none appearance-none"
+                    className="admin-input appearance-none"
                   >
                     <option value="ADJUSTMENT">Ajustement Manuel</option>
                     <option value="PURCHASE">Réassort (Nouvel Achat)</option>
@@ -990,7 +990,7 @@ export default function AdminProductsPage() {
                   <input
                     value={stockForm.note}
                     onChange={(e) => setStockForm((f) => ({ ...f, note: e.target.value }))}
-                    className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold outline-none"
+                    className="admin-input"
                     placeholder="Ex: Inventaire périodique..."
                   />
                 </div>

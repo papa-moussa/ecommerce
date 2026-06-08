@@ -28,7 +28,7 @@ const STATUS_COLORS: Record<string, string> = {
   SHIPPED: 'bg-indigo-100 text-indigo-800',
   DELIVERED: 'bg-green-100 text-green-800',
   CANCELLED: 'bg-red-100 text-red-800',
-  REFUNDED: 'bg-brand-ink/5 text-brand-ink/50',
+  REFUNDED: 'bg-notion-hover text-notion-textSecondary',
 };
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -114,10 +114,10 @@ export default function AdminOrdersPage() {
       header: 'Commande',
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-bold text-brand-ink">
+          <span className="font-medium text-notion-text">
             #{row.original.id.slice(-8).toUpperCase()}
           </span>
-          <span className="text-[10px] text-brand-ink/40 font-medium">
+          <span className="text-xs text-notion-textSecondary">
             {new Date(row.original.createdAt).toLocaleDateString('fr-FR', {
               day: 'numeric',
               month: 'short',
@@ -131,19 +131,17 @@ export default function AdminOrdersPage() {
       header: 'Client',
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-brand-ivory flex items-center justify-center border border-brand-ink/5">
-            <span className="text-[10px] font-bold text-brand-gold">
+          <div className="h-8 w-8 rounded-md bg-notion-hover flex items-center justify-center border border-notion-border">
+            <span className="text-xs font-medium text-notion-textSecondary">
               {row.original.user.firstName[0]}
               {row.original.user.lastName[0]}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-brand-ink text-xs">
+            <span className="font-medium text-notion-text text-sm">
               {row.original.user.firstName} {row.original.user.lastName}
             </span>
-            <span className="text-[10px] text-brand-ink/40 font-medium">
-              {row.original.user.email}
-            </span>
+            <span className="text-xs text-notion-textSecondary">{row.original.user.email}</span>
           </div>
         </div>
       ),
@@ -155,7 +153,7 @@ export default function AdminOrdersPage() {
         const status = getValue<string>();
         return (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[status] ?? ''} border opacity-80`}
+            className={`inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium tracking-wide ${STATUS_COLORS[status] ?? ''}`}
           >
             {status}
           </span>
@@ -166,7 +164,7 @@ export default function AdminOrdersPage() {
       accessorKey: 'totalCents',
       header: 'Total',
       cell: ({ getValue }) => (
-        <span className="font-bold text-brand-ink">{fmtAdmin(getValue<number>())}</span>
+        <span className="font-medium text-notion-text">{fmtAdmin(getValue<number>())}</span>
       ),
     },
     {
@@ -230,7 +228,7 @@ export default function AdminOrdersPage() {
       <PageHeader title={`Commandes (${total})`} />
 
       {/* Premium Status Tabs */}
-      <div className="flex items-center gap-1 bg-brand-ivory/30 p-1 rounded-xl border border-brand-ink/5 w-fit">
+      <div className="flex items-center gap-1 bg-notion-hover/50 p-1 rounded-md border border-notion-border w-fit">
         {STATUSES.map((s) => (
           <button
             key={s.id}
@@ -238,10 +236,10 @@ export default function AdminOrdersPage() {
               setStatusFilter(s.id);
               setPage(1);
             }}
-            className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
+            className={`px-3 py-1 text-xs font-medium rounded transition-all ${
               statusFilter === s.id
-                ? 'bg-brand-ink text-brand-ivory shadow-lg shadow-brand-ink/20'
-                : 'text-brand-ink/40 hover:text-brand-ink hover:bg-brand-ivory'
+                ? 'bg-white text-notion-text shadow-sm border border-notion-border/50'
+                : 'text-notion-textSecondary hover:text-notion-text hover:bg-notion-hover'
             }`}
           >
             {s.label}
@@ -263,24 +261,24 @@ export default function AdminOrdersPage() {
 
       {/* Status update modal */}
       {actionOrder && (
-        <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border border-white/20 space-y-6">
+        <div className="fixed inset-0 bg-notion-text/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl border border-notion-border space-y-6">
             <div>
-              <h2 className="text-xl font-serif text-brand-ink">Mise à jour statut</h2>
-              <p className="text-xs text-brand-ink/40 font-medium">
+              <h2 className="text-lg font-semibold text-notion-text">Mise à jour statut</h2>
+              <p className="text-sm text-notion-textSecondary">
                 Commande #{actionOrder.id.slice(-8).toUpperCase()}
               </p>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase tracking-widest font-bold text-brand-ink/40 ml-1">
+                <label className="text-xs font-medium text-notion-textSecondary ml-1">
                   Nouveau statut
                 </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value)}
-                  className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold outline-none"
+                  className="w-full border border-notion-border bg-transparent rounded-md px-3 py-2 text-sm focus:border-notion-textSecondary outline-none appearance-none hover:bg-notion-hover/50"
                 >
                   {(VALID_TRANSITIONS[actionOrder.status] ?? []).map((s) => (
                     <option key={s} value={s}>
@@ -292,29 +290,29 @@ export default function AdminOrdersPage() {
 
               {newStatus === 'SHIPPED' && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] uppercase tracking-widest font-bold text-brand-ink/40 ml-1">
+                  <label className="text-xs font-medium text-notion-textSecondary ml-1">
                     Numéro de suivi
                   </label>
                   <input
                     value={tracking}
                     onChange={(e) => setTracking(e.target.value)}
                     placeholder="Ex: DHL-123456"
-                    className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold outline-none"
+                    className="w-full border border-notion-border bg-transparent rounded-md px-3 py-2 text-sm focus:border-notion-textSecondary outline-none placeholder:text-notion-textSecondary/50 hover:bg-notion-hover/50"
                   />
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => setActionOrder(null)}
-                className="px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-ink/40"
+                className="px-4 py-2 text-sm font-medium text-notion-textSecondary hover:bg-notion-hover rounded-md transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={handleStatusUpdate}
-                className="px-8 py-3 text-xs font-bold uppercase tracking-widest bg-brand-ink text-brand-ivory rounded-xl hover:bg-brand-gold transition-all shadow-lg"
+                className="px-4 py-2 text-sm font-medium bg-notion-text text-white rounded-md hover:bg-notion-text/90 transition-colors shadow-sm"
               >
                 Confirmer
               </button>
@@ -325,17 +323,17 @@ export default function AdminOrdersPage() {
 
       {/* Refund modal */}
       {refundOrder && (
-        <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border border-white/20 space-y-6">
+        <div className="fixed inset-0 bg-notion-text/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl border border-notion-border space-y-6">
             <div>
-              <h2 className="text-xl font-serif text-brand-ink">Remboursement</h2>
-              <p className="text-xs text-brand-ink/40 font-medium">
-                Total de la commande : {fmtAdmin(refundOrder.totalCents)}
+              <h2 className="text-lg font-semibold text-notion-text">Remboursement</h2>
+              <p className="text-sm text-notion-textSecondary">
+                Total : {fmtAdmin(refundOrder.totalCents)}
               </p>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[10px] uppercase tracking-widest font-bold text-brand-ink/40 ml-1">
+              <label className="text-xs font-medium text-notion-textSecondary ml-1">
                 Montant à rembourser (FCFA)
               </label>
               <input
@@ -343,20 +341,20 @@ export default function AdminOrdersPage() {
                 onChange={(e) => setRefundAmount(e.target.value)}
                 type="number"
                 placeholder="Laisser vide pour total"
-                className="w-full border-brand-ink/5 bg-brand-ivory/20 rounded-xl px-4 py-3 text-sm focus:border-brand-gold outline-none"
+                className="w-full border border-notion-border bg-transparent rounded-md px-3 py-2 text-sm focus:border-notion-textSecondary outline-none placeholder:text-notion-textSecondary/50 hover:bg-notion-hover/50"
               />
             </div>
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end pt-2">
               <button
                 onClick={() => setRefundOrder(null)}
-                className="px-6 py-2.5 text-xs font-bold uppercase tracking-widest text-brand-ink/40"
+                className="px-4 py-2 text-sm font-medium text-notion-textSecondary hover:bg-notion-hover rounded-md transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={handleRefund}
-                className="px-8 py-3 text-xs font-bold uppercase tracking-widest bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg"
+                className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-sm"
               >
                 Rembourser
               </button>
